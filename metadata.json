@@ -1,0 +1,6 @@
+{
+  "name": "Echo",
+  "description": "Practice speaking every day. One topic. Two minutes. Better communication.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
