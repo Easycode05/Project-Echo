@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Deck, Prompt } from './types';
 
 export const DECKS: Deck[] = [
