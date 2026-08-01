@@ -38,7 +38,6 @@ export function useAudioRecorder() {
           sum += dataArray[i];
         }
         const average = sum / bufferLength;
-        // Normalize 0 to 255 -> 0 to 1 with slight boost
         const norm = Math.min(1, Math.max(0, (average / 128) * 1.5));
         setAudioLevel(norm);
         animFrameRef.current = requestAnimationFrame(updateVolume);
@@ -56,15 +55,6 @@ export function useAudioRecorder() {
         }
       };
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-
-        // Stop all tracks
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
       mediaRecorder.start(250);
       setIsRecording(true);
     } catch (err) {
@@ -74,19 +64,35 @@ export function useAudioRecorder() {
     }
   }, []);
 
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    if (animFrameRef.current) {
-      cancelAnimationFrame(animFrameRef.current);
-    }
-    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-      audioCtxRef.current.close().catch(() => {});
-    }
-    setIsRecording(false);
-    setAudioLevel(0);
-  }, []);
+  const stopRecording = useCallback((): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const mr = mediaRecorderRef.current;
+
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+      }
+      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+        audioCtxRef.current.close().catch(() => {});
+      }
+      setIsRecording(false);
+      setAudioLevel(0);
+
+      if (mr && mr.state !== 'inactive') {
+        mr.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          const url = URL.createObjectURL(audioBlob);
+          setAudioUrl(url);
+          if (mr.stream) {
+            mr.stream.getTracks().forEach((track) => track.stop());
+          }
+          resolve(url);
+        };
+        mr.stop();
+      } else {
+        resolve(audioUrl);
+      }
+    });
+  }, [audioUrl]);
 
   useEffect(() => {
     return () => {

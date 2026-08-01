@@ -9,6 +9,7 @@ export type DeckId =
   | 'relationships'
   | 'career'
   | 'medicine'
+  | 'dentistry'
   | 'surprise';
 
 export interface Deck {

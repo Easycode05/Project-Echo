@@ -1,11 +1,12 @@
 'use client';
 
 import React from 'react';
-import { Play, Clock, Compass, ArrowRight } from 'lucide-react';
+import { Play, Clock, Flame, ArrowRight } from 'lucide-react';
 import { Orb } from './Orb';
 import { UserProgress, Deck } from '../lib/types';
 import { PROMPTS } from '../lib/data';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
+import { useSoundSystem } from '../hooks/use-sound-system';
 
 interface HomeViewProps {
   progress: UserProgress;
@@ -20,128 +21,161 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onStartSession,
   onSelectDeck,
 }) => {
-  // Get first prompt for active deck as preview
   const deckPrompts = PROMPTS.filter((p) => p.deckId === activeDeck.id);
   const previewPrompt = deckPrompts[0]?.text || 'What belief have you changed your mind about?';
+  
+  const sounds = useSoundSystem(progress.soundEnabled);
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-between pt-28 pb-36 px-6 overflow-hidden bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300">
-      {/* Dynamic Environmental Radial Aura */}
+    <div className="relative min-h-screen w-full flex flex-col pt-[calc(env(safe-area-inset-top)+128px)] pb-[calc(env(safe-area-inset-bottom)+144px)] px-6 md:px-8 overflow-x-hidden overflow-y-auto bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-500">
+      
+      {/* Environmental subtle gradient, very faint, no glass */}
       <div
-        className="absolute inset-0 z-0 pointer-events-none transition-all duration-1000 opacity-20"
+        className="absolute inset-0 z-0 pointer-events-none transition-all duration-1000 opacity-30"
         style={{
-          background: `radial-gradient(circle at 50% 40%, ${activeDeck.accentColor} 0%, transparent 65%)`,
+          background: `radial-gradient(circle at 70% 30%, ${activeDeck.accentColor}15 0%, transparent 50%)`,
         }}
       />
 
-      {/* Main Sanctuary Focal Area */}
-      <main className="relative z-10 flex flex-col items-center justify-center text-center max-w-xl w-full my-auto py-6">
-        {/* Background Animated Orb */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-          <Orb accentColor={activeDeck.accentColor} size={420} />
+      {/* Top Editorial Stats */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 flex items-center gap-8 mb-16 text-xs uppercase tracking-[0.15em] text-[var(--text-muted)] font-mono"
+      >
+        <div className="flex items-center gap-2">
+          <span>TIME</span>
+          <span className="text-[var(--text-main)] font-medium">{progress.totalMinutes}M</span>
         </div>
+        <div className="flex items-center gap-2">
+          <span>SESSIONS</span>
+          <span className="text-[var(--text-main)] font-medium">{progress.totalSessions}</span>
+        </div>
+        {progress.currentStreak > 0 && (
+          <div className="flex items-center gap-2 text-[var(--accent-warm)]">
+            <span>STREAK</span>
+            <span className="font-medium">{progress.currentStreak}</span>
+          </div>
+        )}
+      </motion.div>
 
-        {/* Unboxed Display Typography Hero Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="space-y-3 mb-12 relative z-10"
-        >
-          <h1 className="font-sans text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight text-[var(--text-main)]">
-            Practice Speaking.
-          </h1>
-
-          <p className="font-sans text-base sm:text-lg text-[var(--text-muted)] font-light max-w-md mx-auto leading-relaxed">
-            One topic. Two minutes. Every day.
-          </p>
-
-          {progress.currentStreak > 0 && (
-            <p className="font-mono text-[11px] tracking-[0.2em] text-amber-500 font-semibold uppercase pt-1">
-              {progress.currentStreak} Day Practice Streak
-            </p>
-          )}
-        </motion.div>
-
-        {/* Action Button: Interactive Pulsing Glass Play Orb */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.8 }}
-          className="flex flex-col items-center relative z-10 mb-12"
-        >
-          <button
-            onClick={onStartSession}
-            className="group relative flex flex-col items-center justify-center gap-4 transition-transform duration-500 active:scale-90 focus:outline-none"
-            aria-label="Start Session"
-          >
-            {/* Outer Pulsing Aura Ring */}
-            <div className="absolute -inset-5 rounded-full bg-[var(--surface-bg)] blur-xl group-hover:bg-[var(--surface-border-hover)] transition-all duration-700 animate-pulse" />
-
-            {/* Glass Play Orb Button */}
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[var(--button-bg)] text-[var(--button-text)] flex items-center justify-center shadow-xl transition-all duration-500 group-hover:scale-105 group-hover:shadow-2xl relative">
-              <Play className="w-9 h-9 sm:w-10 sm:h-10 fill-current translate-x-0.5 transition-transform group-hover:scale-105" />
-            </div>
-
-            <span className="font-mono text-xs text-[var(--text-muted)] tracking-[0.25em] uppercase group-hover:text-[var(--text-main)] transition-colors pt-2 font-medium">
-              BEGIN PRACTICE
-            </span>
-          </button>
-        </motion.div>
-
-        {/* Selected Deck & Prompt Peek Pill */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.8 }}
-          className="w-full max-w-sm relative z-10"
-        >
-          <div className="p-4 sm:p-5 rounded-2xl bg-[var(--surface-bg)] border border-[var(--surface-border)] backdrop-blur-xl text-left space-y-2.5 hover:border-[var(--surface-border-hover)] transition-all group">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={onSelectDeck}
-                className="flex items-center gap-2 text-xs font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+      {/* Main focal area: Left aligned, editorial feel */}
+      <main className="relative z-10 flex flex-col flex-grow w-full max-w-6xl mx-auto mt-12 md:mt-24">
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-8 flex-grow">
+          
+          {/* Left Column: Typography & Info */}
+          <div className="flex flex-col justify-between space-y-24">
+            
+            {/* Hero Typography */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-10"
+            >
+              <h1
+                className="text-5xl sm:text-7xl md:text-[90px] tracking-[-0.04em] font-medium text-[var(--text-main)] leading-[0.95]"
+                style={{ fontFamily: 'var(--font-display)' }}
               >
+                Speak with<br />
+                <span className="text-[var(--text-muted)] font-light italic tracking-tight">intention.</span>
+              </h1>
+
+              <p
+                className="text-xl sm:text-2xl text-[var(--text-muted)] font-light max-w-md leading-relaxed tracking-wide"
+                style={{ fontFamily: 'var(--font-body)' }}
+              >
+                Practice articulating your thoughts through daily speaking sessions.
+              </p>
+            </motion.div>
+
+            {/* Deck Info (Bottom Left) */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 1, ease: [0.22, 1, 0.36, 1] }}
+              className="space-y-8 max-w-md pb-12"
+            >
+              <div className="flex items-center gap-6 border-b border-[var(--surface-border)] pb-6">
                 <span
-                  className="w-2.5 h-2.5 rounded-full"
+                  className="w-2.5 h-2.5 rounded-none shrink-0"
                   style={{ backgroundColor: activeDeck.accentColor }}
                 />
-                <span className="uppercase tracking-wider">DECK: {activeDeck.name}</span>
-              </button>
-              <button
-                onClick={onSelectDeck}
-                className="text-[11px] font-mono text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors flex items-center gap-1"
+                <button
+                  onClick={() => {
+                    sounds.playTap();
+                    onSelectDeck();
+                  }}
+                  className="group flex items-center justify-between w-full text-xs text-[var(--text-main)] transition-colors"
+                  style={{ fontFamily: 'var(--font-mono)' }}
+                >
+                  <span className="uppercase tracking-[0.2em] font-medium">
+                    {activeDeck.name}
+                  </span>
+                  <span className="text-[var(--text-muted)] flex items-center gap-2 group-hover:text-[var(--text-main)] transition-colors">
+                    CHANGE <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </button>
+              </div>
+
+              <p
+                className="text-base sm:text-lg text-[var(--text-muted)] italic leading-relaxed font-light"
+                style={{ fontFamily: 'var(--font-display)' }}
               >
-                <span>Change Deck</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </button>
+                "{previewPrompt}"
+              </p>
+            </motion.div>
+
+          </div>
+
+          {/* Right Column: Orb and Play Button */}
+          <div className="relative flex items-center justify-center min-h-[500px]">
+            {/* Glowing Orb */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-90 mix-blend-screen scale-110">
+              <Orb accentColor={activeDeck.accentColor} size={500} />
             </div>
 
-            {/* Prompt preview text */}
-            <p className="font-sans text-xs sm:text-sm text-[var(--text-main)] italic line-clamp-2 pt-0.5 leading-relaxed font-light">
-              &quot;{previewPrompt}&quot;
-            </p>
-          </div>
-        </motion.div>
-      </main>
+            {/* Circular CTA exactly centered in Orb */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5, duration: 1, ease: [0.22, 1, 0.36, 1] }}
+              className="relative z-10"
+            >
+              <button
+                onClick={() => {
+                  sounds.playTap();
+                  onStartSession();
+                }}
+                id="begin-practice-btn"
+                className="group flex flex-col items-center justify-center w-36 h-36 rounded-full bg-[var(--bg-main)] text-[var(--text-main)] transition-all duration-700 shadow-2xl hover:shadow-[0_0_60px_-10px_rgba(255,255,255,0.1)] hover:scale-105 active:scale-95"
+                style={{
+                  boxShadow: `0 0 40px ${activeDeck.accentColor}20, inset 0 0 20px ${activeDeck.accentColor}10`,
+                  border: `1px solid ${activeDeck.accentColor}30`
+                }}
+                aria-label="Begin Practice"
+              >
+                <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 mix-blend-screen" 
+                     style={{ background: `radial-gradient(circle at center, ${activeDeck.accentColor}40 0%, transparent 70%)` }} />
+                
+                <div className="relative z-10 flex flex-col items-center gap-3 group-hover:scale-110 transition-transform duration-500 ease-out">
+                  <Play className="w-8 h-8 ml-1" style={{ fill: 'currentColor' }} />
+                  <span className="text-[9px] uppercase tracking-[0.3em] font-mono opacity-60 group-hover:opacity-100 transition-opacity duration-500">
+                    Begin
+                  </span>
+                </div>
 
-      {/* Bottom Summary Stats Pill */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="relative z-10 flex items-center gap-6 px-6 py-2.5 rounded-full bg-[var(--surface-bg)] border border-[var(--surface-border)] font-mono text-xs text-[var(--text-muted)] backdrop-blur-md mt-4"
-      >
-        <div className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" />
-          <span>{progress.totalMinutes}m Spoken</span>
+                {/* Subtle ripple effect rings */}
+                <div className="absolute inset-0 rounded-full border border-[var(--text-main)] opacity-0 group-hover:animate-ping" style={{ animationDuration: '3s' }} />
+              </button>
+            </motion.div>
+          </div>
+
         </div>
-        <div className="w-1 h-1 rounded-full bg-[var(--text-muted)] opacity-40" />
-        <div className="flex items-center gap-1.5">
-          <Compass className="w-3.5 h-3.5" />
-          <span>{progress.totalSessions} Sessions</span>
-        </div>
-      </motion.div>
+      </main>
     </div>
   );
 };
+

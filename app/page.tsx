@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
-import { BottomNav, TabType } from '../components/BottomNav';
 import { HomeView } from '../components/HomeView';
 import { DeckSelectionView } from '../components/DeckSelectionView';
 import { PromptView } from '../components/PromptView';
@@ -18,9 +17,12 @@ import {
   saveProgress,
   recordCompletedSession,
 } from '../lib/storage';
-import { AnimatePresence, motion } from 'motion/react';
+import { trackEvent, recordSessionBackend, getDecks } from '../lib/supabase';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export default function Page() {
+  const [decks, setDecks] = useState<Deck[]>(DECKS);
+  const [isDecksLoaded, setIsDecksLoaded] = useState(false);
   const [progress, setProgress] = useState<UserProgress>(() => {
     if (typeof window !== 'undefined') {
       return getStoredProgress();
@@ -47,7 +49,7 @@ export default function Page() {
   >('home');
 
   // Bottom Nav Tab mapping
-  const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'decks' | 'history'>('home');
 
   // Active session parameters
   const [currentPromptText, setCurrentPromptText] = useState<string>('');
@@ -71,16 +73,39 @@ export default function Page() {
     }
   }, [progress?.theme]);
 
-  if (!progress) {
+  // Track App Launch
+  useEffect(() => {
+    if (progress) {
+      trackEvent('app_launch', { 
+        total_sessions: progress.totalSessions,
+        streak: progress.currentStreak 
+      });
+    }
+  }, []);
+
+  // Fetch decks on mount
+  useEffect(() => {
+    async function load() {
+      const fetched = await getDecks();
+      if (fetched && fetched.length > 0) {
+        setDecks(fetched);
+        setActiveDeck(fetched[0]);
+      }
+      setIsDecksLoaded(true);
+    }
+    load();
+  }, []);
+
+  if (!progress || !isDecksLoaded) {
     return (
-      <div className="min-h-screen w-full bg-[#050505] flex items-center justify-center text-white font-mono text-xs">
-        Initializing Echo...
+      <div className="min-h-screen w-full bg-[var(--bg-main)] flex items-center justify-center text-[var(--text-muted)] font-mono text-xs transition-colors duration-300">
+        Connecting to Echo...
       </div>
     );
   }
 
   // Handle Bottom Nav selection
-  const handleSelectTab = (tab: TabType) => {
+  const handleSelectTab = (tab: 'home' | 'decks' | 'history') => {
     setActiveTab(tab);
     if (tab === 'home') setView('home');
     if (tab === 'decks') setView('decks');
@@ -103,6 +128,11 @@ export default function Page() {
     setCurrentPromptText(promptText);
     setSelectedDuration(durationSeconds);
     setView('session');
+    
+    trackEvent('session_started', {
+      deck_id: activeDeck.id,
+      duration_target: durationSeconds,
+    });
   };
 
   // Session completion
@@ -134,6 +164,16 @@ export default function Page() {
     };
     setProgress(restored);
     saveProgress(restored);
+    
+    // Backend tracking
+    recordSessionBackend(activeDeck.id, finalDuration, true, continuedAfterTimer);
+    trackEvent('session_completed', {
+      deck_id: activeDeck.id,
+      duration_actual: finalDuration,
+      continued: continuedAfterTimer,
+      new_streak: restored.currentStreak
+    });
+
     setView('history');
     setActiveTab('history');
   };
@@ -161,7 +201,7 @@ export default function Page() {
   const isFullscreenView = view === 'session' || view === 'completion';
 
   return (
-    <div className="min-h-screen w-full bg-[#050505] text-[#e5e2e1] font-sans relative select-none">
+    <div className="min-h-screen w-full bg-[var(--bg-main)] text-[var(--text-main)] font-sans relative select-none transition-colors duration-300">
       {/* Top App Bar Header (Hidden in transactional session screens) */}
       {!isFullscreenView && (
         <Header
@@ -174,6 +214,9 @@ export default function Page() {
           }}
           onClose={() => setView('home')}
           onOpenSettings={() => setShowSettings(true)}
+          activeTab={view === 'home' || view === 'decks' || view === 'history' ? activeTab : undefined}
+          onSelectTab={handleSelectTab}
+          soundEnabled={progress.soundEnabled}
         />
       )}
 
@@ -185,7 +228,7 @@ export default function Page() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.35, ease: 'easeOut' }}
           >
             <HomeView
               progress={progress}
@@ -194,6 +237,7 @@ export default function Page() {
                 setView('prompt');
               }}
               onSelectDeck={() => {
+                trackEvent('deck_selection_opened');
                 setView('decks');
                 setActiveTab('decks');
               }}
@@ -204,15 +248,17 @@ export default function Page() {
         {view === 'decks' && (
           <motion.div
             key="view-decks"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
             <DeckSelectionView
+              decks={decks}
               currentDeckId={activeDeck.id}
               onSelectDeck={(deck) => setActiveDeck(deck)}
               onProceedToPrompt={(deck) => {
+                trackEvent('deck_selected', { deck_id: deck.id });
                 setActiveDeck(deck);
                 setView('prompt');
               }}
@@ -223,10 +269,10 @@ export default function Page() {
         {view === 'prompt' && (
           <motion.div
             key="view-prompt"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            initial={{ opacity: 0, y: 20, scale: 0.99 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           >
             <PromptView
               deck={activeDeck}
@@ -238,10 +284,10 @@ export default function Page() {
         {view === 'session' && (
           <motion.div
             key="view-session"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
             <SessionView
               deck={activeDeck}
@@ -249,6 +295,7 @@ export default function Page() {
               targetDurationSeconds={selectedDuration}
               onCompleteSession={handleSessionCompleted}
               onCancelSession={() => setView('home')}
+              soundEnabled={progress.soundEnabled}
             />
           </motion.div>
         )}
@@ -256,10 +303,10 @@ export default function Page() {
         {view === 'completion' && (
           <motion.div
             key="view-completion"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
             <CompletionView
               deck={activeDeck}
@@ -273,20 +320,15 @@ export default function Page() {
         {view === 'history' && (
           <motion.div
             key="view-history"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
             <HistoryView progress={progress} />
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Floating Bottom Nav Dock (Hidden in full-screen session & completion modes) */}
-      {!isFullscreenView && (
-        <BottomNav activeTab={activeTab} onSelectTab={handleSelectTab} />
-      )}
 
       {/* Onboarding Overlay */}
       {showOnboarding && (

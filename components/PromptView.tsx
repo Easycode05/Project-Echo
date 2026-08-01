@@ -1,16 +1,19 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { RefreshCw, Clock } from 'lucide-react';
-import { Deck } from '../lib/types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { Deck, Prompt } from '../lib/types';
 import { PROMPTS } from '../lib/data';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useSoundSystem } from '../hooks/use-sound-system';
+import { getPrompts, trackEvent } from '../lib/supabase';
 
 interface PromptViewProps {
   deck: Deck;
   skipsRemaining?: number;
   onUseSkip?: () => void;
   onBeginPractice: (promptText: string, durationSeconds: number) => void;
+  soundEnabled?: boolean;
 }
 
 const DURATION_OPTIONS = [
@@ -23,33 +26,48 @@ const DURATION_OPTIONS = [
 export const PromptView: React.FC<PromptViewProps> = ({
   deck,
   onBeginPractice,
+  soundEnabled = true,
 }) => {
-  // Available prompts for this deck
-  const deckPrompts = useMemo(() => {
-    if (deck.id === 'surprise') {
-      return PROMPTS;
+  const sounds = useSoundSystem(soundEnabled);
+  
+  const [deckPrompts, setDeckPrompts] = useState<Prompt[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch prompts asynchronously
+  useEffect(() => {
+    async function loadPrompts() {
+      setIsLoading(true);
+      const fetched = await getPrompts(deck.id);
+      setDeckPrompts(fetched);
+      setIsLoading(false);
     }
-    return PROMPTS.filter((p) => p.deckId === deck.id);
+    loadPrompts();
   }, [deck.id]);
 
   // Session-bound skips state (always starts with 2 per speaking session)
   const [skipsRemaining, setSkipsRemaining] = useState<number>(2);
 
-  // Pick initial random prompt from deck
-  const [currentPromptText, setCurrentPromptText] = useState<string>(() => {
-    if (deckPrompts.length === 0) {
-      return 'What belief have you changed your mind about?';
-    }
-    const randomIndex = Math.floor(Math.random() * deckPrompts.length);
-    return deckPrompts[randomIndex].text;
-  });
+  const [currentPromptText, setCurrentPromptText] = useState<string>('');
+  const [seenPrompts, setSeenPrompts] = useState<string[]>([]);
 
-  // Track seen prompts in this pre-session selection to avoid immediate repeats
-  const [seenPrompts, setSeenPrompts] = useState<string[]>([currentPromptText]);
+  // Pick initial random prompt once loaded
+  useEffect(() => {
+    if (!isLoading && deckPrompts.length > 0 && !currentPromptText) {
+      const randomIndex = Math.floor(Math.random() * deckPrompts.length);
+      const text = deckPrompts[randomIndex].text;
+      setCurrentPromptText(text);
+      setSeenPrompts([text]);
+      
+      trackEvent('prompt_displayed', { deck_id: deck.id, prompt: text });
+    }
+  }, [isLoading, deckPrompts, currentPromptText, deck.id]);
+
   const [selectedDuration, setSelectedDuration] = useState<number>(120);
 
   const handleSkipPrompt = () => {
-    if (skipsRemaining <= 0) return;
+    if (skipsRemaining <= 0 || deckPrompts.length === 0) return;
+
+    trackEvent('prompt_skipped', { deck_id: deck.id, prompt: currentPromptText });
 
     // Filter out the current prompt
     const otherPrompts = deckPrompts.filter((p) => p.text !== currentPromptText);
@@ -65,115 +83,167 @@ export const PromptView: React.FC<PromptViewProps> = ({
     setCurrentPromptText(newPromptText);
     setSeenPrompts((prev) => [...prev, newPromptText]);
     setSkipsRemaining((prev) => prev - 1);
+    
+    trackEvent('prompt_displayed', { deck_id: deck.id, prompt: newPromptText });
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 overflow-hidden bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300">
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 md:px-8 overflow-x-hidden overflow-y-auto bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-500">
       {/* Background Room Environmental Ambient Layer */}
       <div
-        className="absolute inset-0 z-0 opacity-30 transition-all duration-1000 pointer-events-none"
+        className="absolute inset-0 z-0 opacity-20 transition-all duration-1000 pointer-events-none"
         style={{
-          background: `radial-gradient(circle at center, ${deck.accentColor} 0%, transparent 80%)`,
+          background: `radial-gradient(circle at center, ${deck.accentColor} 0%, transparent 60%)`,
         }}
       />
 
       {/* Main Content Canvas */}
-      <main className="relative z-10 w-full max-w-[640px] text-center flex flex-col items-center justify-center py-12">
+      <main className="relative z-10 w-full max-w-[800px] text-center flex flex-col items-center justify-center pt-[calc(env(safe-area-inset-top)+128px)] pb-[calc(env(safe-area-inset-bottom)+96px)] flex-grow">
+        
         {/* Deck Category Label */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="mb-6"
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-16"
         >
-          <span className="font-mono text-xs tracking-[0.3em] text-[var(--text-muted)] uppercase px-3 py-1 rounded-full bg-[var(--surface-bg)] border border-[var(--surface-border)] font-medium">
-            {deck.name} Deck
-          </span>
+          <div className="flex items-center justify-center gap-4">
+            <span
+              className="w-2.5 h-2.5 rounded-none"
+              style={{ backgroundColor: deck.accentColor }}
+            />
+            <span className="font-mono text-xs tracking-[0.2em] text-[var(--text-muted)] uppercase font-medium">
+              {deck.name} Deck
+            </span>
+          </div>
         </motion.div>
 
         {/* The Quote Prompt */}
-        <motion.h1
-          key={currentPromptText}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="font-sans text-2xl sm:text-4xl md:text-5xl font-light text-[var(--text-main)] leading-tight mb-8 px-2"
-        >
-          &quot;{currentPromptText}&quot;
-        </motion.h1>
+        <div className="min-h-[140px] flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            {isLoading ? (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-sm font-mono tracking-widest uppercase text-[var(--text-muted)] animate-pulse"
+              >
+                Connecting...
+              </motion.div>
+            ) : (
+              <motion.h1
+                key={currentPromptText}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                className="text-4xl sm:text-5xl md:text-6xl font-light text-[var(--text-main)] leading-[1.1] mb-12 tracking-[-0.02em] italic max-w-[90%]"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                "{currentPromptText}"
+              </motion.h1>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Skip button control */}
-        <div className="mb-8">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 1 }}
+          className="mb-auto"
+        >
           <button
-            onClick={handleSkipPrompt}
+            onClick={() => {
+              sounds.playCancel();
+              handleSkipPrompt();
+            }}
             disabled={skipsRemaining <= 0}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--surface-bg)] border border-[var(--surface-border)] hover:border-[var(--surface-border-hover)] text-xs font-mono text-[var(--text-main)] transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-3 text-xs font-mono text-[var(--text-muted)] uppercase tracking-widest hover:text-[var(--text-main)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed pb-2 border-b border-transparent hover:border-[var(--text-main)]"
             title={
               skipsRemaining > 0
                 ? `Skip prompt (${skipsRemaining} remaining)`
                 : 'No skips remaining'
             }
           >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Skip Prompt</span>
-            <div className="flex items-center gap-1 ml-1">
+            <RefreshCw className="w-4 h-4" />
+            <span>Generate Alternative</span>
+            <div className="flex items-center gap-1.5 ml-2 border-l border-[var(--surface-border)] pl-3">
               <span
-                className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                  skipsRemaining >= 1 ? 'bg-emerald-500' : 'bg-neutral-400/30'
+                className={`w-1.5 h-1.5 rounded-none transition-colors ${
+                  skipsRemaining >= 1 ? 'bg-[var(--text-main)]' : 'bg-[var(--surface-border)]'
                 }`}
               />
               <span
-                className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                  skipsRemaining >= 2 ? 'bg-emerald-500' : 'bg-neutral-400/30'
+                className={`w-1.5 h-1.5 rounded-none transition-colors ${
+                  skipsRemaining >= 2 ? 'bg-[var(--text-main)]' : 'bg-[var(--surface-border)]'
                 }`}
               />
             </div>
           </button>
-        </div>
+        </motion.div>
 
-        {/* Duration Selector */}
-        <div className="w-full max-w-md p-4 rounded-2xl bg-[var(--surface-bg)] border border-[var(--surface-border)] backdrop-blur-md mb-8 space-y-3">
-          <div className="flex items-center justify-center gap-2 text-[var(--text-muted)] font-mono text-xs tracking-widest uppercase">
-            <Clock className="w-3.5 h-3.5" />
-            <span>Select Practice Time</span>
+        {/* Action Area */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-sm flex flex-col items-center gap-10 mt-20"
+        >
+          
+          {/* Duration Selector */}
+          <div className="flex flex-col items-center gap-4 w-full">
+            <span className="font-mono text-[10px] text-[var(--text-muted)] tracking-[0.2em] uppercase">
+              Target Duration
+            </span>
+            <div className="flex items-center justify-center gap-6">
+              {DURATION_OPTIONS.map((opt) => {
+                const isSelected = selectedDuration === opt.seconds;
+                return (
+                  <button
+                    key={opt.seconds}
+                    onClick={() => {
+                      sounds.playTap();
+                      setSelectedDuration(opt.seconds);
+                    }}
+                    className={`font-mono text-sm tracking-wider transition-colors pb-1 border-b-2 ${
+                      isSelected
+                        ? 'text-[var(--text-main)] border-[var(--text-main)] font-medium'
+                        : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-main)] font-light'
+                    }`}
+                  >
+                    {opt.label.split(' ')[0]}
+                    <span className="text-[10px] ml-1">M</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="grid grid-cols-4 gap-2">
-            {DURATION_OPTIONS.map((opt) => {
-              const isSelected = selectedDuration === opt.seconds;
-              return (
-                <button
-                  key={opt.seconds}
-                  onClick={() => setSelectedDuration(opt.seconds)}
-                  className={`py-2 px-1 rounded-xl font-mono text-xs tracking-wider transition-all border ${
-                    isSelected
-                      ? 'bg-[var(--button-bg)] text-[var(--button-text)] border-transparent font-semibold shadow-md scale-[1.02]'
-                      : 'bg-[var(--surface-bg)] text-[var(--text-muted)] border-[var(--surface-border)] hover:text-[var(--text-main)]'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* Primary Action Button */}
-        <div className="w-full max-w-xs space-y-3">
-          <motion.button
-            onClick={() => onBeginPractice(currentPromptText, selectedDuration)}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.96 }}
-            className="w-full py-4 rounded-full bg-[var(--button-bg)] text-[var(--button-text)] font-mono text-xs tracking-[0.25em] font-semibold uppercase transition-all shadow-xl hover:opacity-90"
+          {/* Primary Action Button */}
+          <button
+            disabled={isLoading || !currentPromptText}
+            onClick={() => {
+              sounds.playTap();
+              trackEvent('prompt_accepted', { deck_id: deck.id, prompt: currentPromptText });
+              onBeginPractice(currentPromptText, selectedDuration);
+            }}
+            className="w-full py-6 bg-[var(--text-main)] text-[var(--bg-main)] hover:bg-[var(--accent-warm)] transition-colors duration-300 ease-out flex items-center justify-center gap-6 group disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            BEGIN PRACTICE
-          </motion.button>
-
-          {/* Contextual Hint */}
-          <p className="font-sans text-xs text-[var(--text-muted)] animate-pulse">
-            Tap to start your {selectedDuration / 60}-minute speaking session
-          </p>
-        </div>
+            <span
+              className="text-xs tracking-[0.2em] uppercase font-medium"
+              style={{ fontFamily: 'var(--font-mono)' }}
+            >
+              Begin Practice
+            </span>
+            <span className="font-mono text-[10px] opacity-60 group-hover:opacity-100 transition-opacity">
+              {selectedDuration / 60} MIN
+            </span>
+          </button>
+        </motion.div>
       </main>
     </div>
   );
 };
+

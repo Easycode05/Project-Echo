@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Flame, BarChart3, Check } from 'lucide-react';
 import { UserProgress, Deck } from '../lib/types';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useSoundSystem } from '../hooks/use-sound-system';
 
 interface CompletionViewProps {
   deck: Deck;
@@ -20,17 +21,25 @@ export const CompletionView: React.FC<CompletionViewProps> = ({
 }) => {
   const [isContinuing, setIsContinuing] = useState(false);
   const [totalSecs, setTotalSecs] = useState(durationSeconds);
+  const [burstDone, setBurstDone] = useState(false);
+  const sounds = useSoundSystem(progress.soundEnabled);
 
-  // If user clicks "Continue Speaking", timer counts upward continuously
+  useEffect(() => {
+    // Play completion sound when the view appears
+    sounds.playComplete();
+  }, []);
+
   useEffect(() => {
     if (!isContinuing) return;
-
-    const timer = setInterval(() => {
-      setTotalSecs((prev) => prev + 1);
-    }, 1000);
-
+    const timer = setInterval(() => setTotalSecs((prev) => prev + 1), 1000);
     return () => clearInterval(timer);
   }, [isContinuing]);
+
+  // Mark burst as done after animation completes
+  useEffect(() => {
+    const t = setTimeout(() => setBurstDone(true), 1800);
+    return () => clearTimeout(t);
+  }, []);
 
   const formatTime = (secs: number) => {
     const mins = Math.floor(secs / 60);
@@ -39,107 +48,159 @@ export const CompletionView: React.FC<CompletionViewProps> = ({
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 overflow-hidden bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300">
-      {/* Ambient Room Glow Background */}
+    <div className="relative min-h-screen w-full flex flex-col px-6 md:px-8 overflow-x-hidden overflow-y-auto bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-500 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      {/* Ambient Room Glow */}
       <div
         className="absolute inset-0 z-0 pointer-events-none transition-all duration-1000 opacity-20"
         style={{
-          background: `radial-gradient(circle at center, ${deck.accentColor} 0%, transparent 80%)`,
+          background: `radial-gradient(circle at center, ${deck.accentColor} 0%, transparent 60%)`,
         }}
       />
 
-      {/* Main Content Canvas */}
-      <main className="relative z-10 w-full max-w-[500px] flex-1 flex flex-col items-center justify-center pt-20 pb-32">
-        {/* Central Success Message */}
+      {/* ✨ Radial burst rings — fire on mount, then fade away */}
+      {!burstDone && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+          {[0, 1, 2].map((i) => (
+            <motion.div
+              key={i}
+              className="absolute border border-[var(--surface-border)]"
+              style={{
+                borderColor: deck.accentColor,
+                width: 80,
+                height: 80,
+              }}
+              initial={{ scale: 0.5, opacity: 0.5 }}
+              animate={{ scale: 6 + i * 2, opacity: 0 }}
+              transition={{
+                delay: i * 0.15,
+                duration: 1.5,
+                ease: [0.16, 1, 0.3, 1],
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Main Content */}
+      <main className="relative z-10 w-full max-w-[600px] mx-auto flex-1 flex flex-col items-center justify-center pt-20 pb-32">
+
+        {/* Success headline */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-8"
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center mb-16"
         >
-          <h1 className="font-sans text-4xl sm:text-5xl font-light text-[var(--text-main)] mb-2">
-            Great practice.
+          <h1
+            className="text-6xl sm:text-7xl font-light text-[var(--text-main)] mb-4 tracking-[-0.02em] leading-none"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            Practice<br />Complete.
           </h1>
-          <p className="font-sans text-base text-[var(--text-muted)] font-light">
+          <p className="font-sans text-lg text-[var(--text-muted)] font-light">
             You completed your speaking session.
           </p>
         </motion.div>
 
-        {/* Primary Stat: Timer */}
+        {/* Animated timer — ticks upward if continuing */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.3, duration: 0.8 }}
-          className="mb-10 text-center"
+          transition={{ delay: 0.2, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-16 text-center border-y border-[var(--surface-border)] py-8 w-full"
         >
-          <div className="font-sans text-7xl sm:text-8xl font-extralight tracking-tight text-[var(--text-main)]">
-            {formatTime(totalSecs)}
-          </div>
-          <span className="font-mono text-[11px] tracking-[0.25em] text-[var(--text-muted)] uppercase font-medium">
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              key={totalSecs}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={{ duration: 0.2 }}
+              className="text-7xl sm:text-8xl font-light tracking-tight text-[var(--text-main)] tabular-nums leading-none"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {formatTime(totalSecs)}
+            </motion.div>
+          </AnimatePresence>
+          <div className="font-mono text-xs tracking-[0.25em] text-[var(--text-muted)] uppercase mt-6">
             {isContinuing ? 'Speaking Continuously' : 'Session Length'}
-          </span>
+          </div>
         </motion.div>
 
-        {/* Daily Progress Grid */}
+        {/* Stat cards — staggered entrance */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full"
+          transition={{ delay: 0.4, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="grid grid-cols-1 sm:grid-cols-2 gap-12 w-full px-4"
         >
-          {/* Streak Card */}
-          <div className="bg-[var(--surface-bg)] backdrop-blur-2xl border border-[var(--surface-border)] p-5 rounded-2xl flex flex-col items-start gap-2 overflow-hidden relative group hover:border-[var(--surface-border-hover)] transition-all">
-            <span className="font-mono text-xs text-[var(--text-muted)] uppercase tracking-wider font-medium">
+          {/* Streak card */}
+          <motion.div
+            className="flex flex-col items-center sm:items-start gap-2"
+          >
+            <span className="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-[0.2em]">
               Practice Streak
             </span>
             <div className="flex items-baseline gap-2">
-              <span className="font-sans text-3xl font-normal text-[var(--text-main)]">
-                {progress.currentStreak}
+              <span className="text-4xl font-light text-[var(--text-main)] leading-none" style={{ fontFamily: 'var(--font-display)' }}>
+                {(() => {
+                  const lastDateStr = progress.lastSessionDate ? new Date(progress.lastSessionDate).toISOString().split('T')[0] : '';
+                  const todayStr = new Date().toISOString().split('T')[0];
+                  return lastDateStr !== todayStr ? progress.currentStreak + 1 : Math.max(1, progress.currentStreak);
+                })()}
               </span>
-              <span className="font-sans text-xs text-[var(--text-muted)] font-light">Day Streak</span>
+              <span className="font-sans text-sm text-[var(--text-muted)] font-light italic">Days</span>
             </div>
-            <div className="absolute -right-3 -bottom-3 opacity-10 text-[var(--text-main)]">
-              <Flame className="w-20 h-20" />
-            </div>
-          </div>
+          </motion.div>
 
-          {/* Total Minutes Card */}
-          <div className="bg-[var(--surface-bg)] backdrop-blur-2xl border border-[var(--surface-border)] p-5 rounded-2xl flex flex-col items-start gap-2 overflow-hidden relative group hover:border-[var(--surface-border-hover)] transition-all">
-            <span className="font-mono text-xs text-[var(--text-muted)] uppercase tracking-wider font-medium">
+          {/* Total minutes card */}
+          <motion.div
+            className="flex flex-col items-center sm:items-end gap-2"
+          >
+            <span className="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-[0.2em]">
               Speaking Volume
             </span>
             <div className="flex items-baseline gap-2">
-              <span className="font-sans text-3xl font-normal text-[var(--text-main)]">
+              <span className="text-4xl font-light text-[var(--text-main)] leading-none" style={{ fontFamily: 'var(--font-display)' }}>
                 {progress.totalMinutes + Math.round(totalSecs / 60)}
               </span>
-              <span className="font-sans text-xs text-[var(--text-muted)] font-light">Total Minutes</span>
+              <span className="font-sans text-sm text-[var(--text-muted)] font-light italic">Minutes</span>
             </div>
-            <div className="absolute -right-3 -bottom-3 opacity-10 text-[var(--text-main)]">
-              <BarChart3 className="w-16 h-16" />
-            </div>
-          </div>
+          </motion.div>
         </motion.div>
       </main>
 
-      {/* Bottom Actions Container */}
-      <footer className="fixed bottom-0 left-0 w-full z-50 flex flex-col items-center gap-3 pb-8 px-6 bg-gradient-to-t from-[var(--bg-main)] via-[var(--bg-main)]/90 to-transparent">
-        <button
-          onClick={() => onFinish(totalSecs, isContinuing)}
-          className="w-full max-w-sm bg-[var(--button-bg)] text-[var(--button-text)] font-sans font-semibold text-base py-4 rounded-full transition-all duration-300 active:scale-[0.98] shadow-xl flex items-center justify-center gap-2 hover:opacity-90"
+      {/* Bottom actions */}
+      <footer className="fixed bottom-0 left-0 w-full z-50 flex flex-col items-center gap-6 pb-[calc(env(safe-area-inset-bottom)+48px)] px-6 md:px-8 bg-gradient-to-t from-[var(--bg-main)] via-[var(--bg-main)]/90 to-transparent pt-12 pointer-events-none">
+        <motion.button
+          onClick={() => {
+            sounds.playTap();
+            onFinish(totalSecs, isContinuing);
+          }}
+          className="w-full max-w-sm bg-[var(--text-main)] text-[var(--bg-main)] font-mono font-medium text-xs tracking-[0.2em] uppercase py-5 transition-all flex items-center justify-center gap-3 hover:bg-[var(--accent-warm)] pointer-events-auto"
         >
-          <Check className="w-5 h-5" />
-          <span>Finish</span>
-        </button>
+          <span>Finish Session</span>
+          <Check className="w-4 h-4" />
+        </motion.button>
 
-        {!isContinuing && (
-          <button
-            onClick={() => setIsContinuing(true)}
-            className="font-mono text-xs tracking-wider text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors py-2 active:scale-95 uppercase font-medium"
-          >
-            Continue Speaking
-          </button>
-        )}
+        <AnimatePresence>
+          {!isContinuing && (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                sounds.playTap();
+                setIsContinuing(true);
+              }}
+              className="font-mono text-[10px] tracking-[0.2em] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors uppercase border-b border-transparent hover:border-[var(--text-main)] pb-1 pointer-events-auto"
+            >
+              Continue Speaking
+            </motion.button>
+          )}
+        </AnimatePresence>
       </footer>
     </div>
   );
 };
+

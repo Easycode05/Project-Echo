@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { ShieldCheck, CloudOff, Cpu, X, ChevronRight } from 'lucide-react';
 import { Orb } from './Orb';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface OnboardingModalProps {
   onComplete: () => void;
@@ -21,27 +21,27 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050505] text-[#e5e2e1] overflow-hidden select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-6 md:px-8 bg-[var(--bg-main)] text-[var(--text-main)] overflow-x-hidden overflow-y-auto select-none transition-colors duration-500 pt-[calc(env(safe-area-inset-top)+48px)] pb-[calc(env(safe-area-inset-bottom)+48px)]">
       {/* Background Animated Orb */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
         <Orb accentColor="#1E1B4B" size={380} />
       </div>
 
       {/* Header Anchor */}
-      <header className="fixed top-0 left-0 w-full flex items-center justify-between px-6 h-20 z-50">
-        <span className="font-mono text-xs tracking-[0.25em] text-white uppercase font-medium">
-          ECHO
+      <header className="fixed top-0 left-0 w-full flex items-center justify-between px-6 md:px-8 pt-[calc(env(safe-area-inset-top)+32px)] pb-6 z-50">
+        <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--text-muted)] uppercase">
+          ECHO PROJECT
         </span>
         <button
           onClick={onComplete}
-          className="text-neutral-400 hover:text-white transition-opacity p-2"
+          className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors p-2"
         >
           <X className="w-5 h-5" />
         </button>
       </header>
 
       {/* Main Content Area */}
-      <main className="relative z-10 w-full max-w-[550px] px-6 flex flex-col items-center text-center my-auto">
+      <main className="relative z-10 w-full max-w-[600px] px-8 flex flex-col items-center text-center my-auto">
         <AnimatePresence mode="wait">
           {/* SLIDE 0: Master your message */}
           {slide === 0 && (
@@ -50,20 +50,23 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-6 flex flex-col items-center"
             >
-              <h1 className="font-sans text-4xl sm:text-5xl font-light text-white tracking-tight">
-                Practice speaking every day.
+              <h1
+                className="text-5xl sm:text-6xl font-light text-[var(--text-main)] tracking-[-0.02em] leading-none"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                Practice speaking<br/>every day.
               </h1>
-              <p className="font-sans text-base sm:text-lg text-neutral-400 max-w-sm leading-relaxed font-light">
+              <p className="font-sans text-lg text-[var(--text-muted)] max-w-sm leading-relaxed font-light mt-4">
                 One topic. Two minutes. Better communication and public speaking skills.
               </p>
 
-              <div className="pt-12">
+              <div className="pt-12 w-full max-w-[280px]">
                 <button
                   onClick={handleNext}
-                  className="px-12 py-4 rounded-full bg-white/10 border border-white/20 backdrop-blur-2xl font-mono text-xs tracking-[0.2em] text-white uppercase hover:bg-white/20 transition-all active:scale-95 shadow-2xl"
+                  className="w-full px-10 py-5 bg-[var(--text-main)] text-[var(--bg-main)] font-mono text-[10px] tracking-[0.2em] uppercase transition-colors hover:bg-[var(--accent-warm)]"
                 >
                   Get Started
                 </button>
@@ -78,29 +81,32 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
               className="space-y-6 flex flex-col items-center"
             >
-              <h1 className="font-sans text-4xl sm:text-5xl font-light text-white tracking-tight">
-                Speak with confidence.
+              <h1
+                className="text-5xl sm:text-6xl font-light text-[var(--text-main)] tracking-[-0.02em] leading-none"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                Speak with<br/>confidence.
               </h1>
-              <p className="font-sans text-xl text-neutral-300 font-light max-w-md">
+              <p className="font-sans text-xl text-[var(--text-main)] font-light max-w-md mt-4">
                 Two minutes of continuous verbal delivery.
               </p>
-              <p className="font-mono text-xs text-neutral-400 uppercase tracking-widest pt-2">
+              <p className="font-mono text-[10px] text-[var(--text-muted)] uppercase tracking-[0.2em] mt-2 border-t border-[var(--surface-border)] pt-4">
                 Pick a topic, organize your thoughts, and speak continuously.
               </p>
 
-              <div className="pt-8 flex flex-col items-center gap-4 w-full max-w-xs">
+              <div className="pt-12 flex flex-col items-center gap-6 w-full max-w-[280px]">
                 <button
                   onClick={handleNext}
-                  className="w-full py-4 rounded-full bg-white/10 border border-white/20 backdrop-blur-2xl font-mono text-xs tracking-[0.2em] text-white uppercase hover:bg-white/20 transition-all active:scale-95 shadow-2xl"
+                  className="w-full px-10 py-5 bg-[var(--text-main)] text-[var(--bg-main)] font-mono text-[10px] tracking-[0.2em] uppercase transition-colors hover:bg-[var(--accent-warm)]"
                 >
                   Begin Practice
                 </button>
                 <button
                   onClick={onComplete}
-                  className="font-mono text-xs text-neutral-400 underline underline-offset-8 hover:text-white transition-colors"
+                  className="font-mono text-[10px] text-[var(--text-muted)] tracking-[0.1em] uppercase hover:text-[var(--text-main)] transition-colors border-b border-transparent hover:border-[var(--text-main)] pb-1"
                 >
                   Skip setup for now
                 </button>
@@ -115,47 +121,50 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.6 }}
-              className="space-y-6 flex flex-col items-center"
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="space-y-8 flex flex-col items-center"
             >
-              <div className="w-16 h-16 rounded-full flex items-center justify-center bg-white/[0.04] border border-white/10 backdrop-blur-2xl mb-2">
-                <ShieldCheck className="w-8 h-8 text-[#c9c6c5]" />
-              </div>
-
-              <h1 className="font-sans text-3xl sm:text-4xl font-light text-white tracking-tight">
-                Your voice belongs to you.
+              <h1
+                className="text-4xl sm:text-5xl font-light text-[var(--text-main)] tracking-[-0.02em] leading-none"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
+                Your voice belongs<br/>to you.
               </h1>
-              <p className="font-sans text-sm text-neutral-300 max-w-md leading-relaxed">
-                Echo is designed with a &quot;local-first&quot; philosophy. Your practice audio is processed entirely on this device and never uploaded or stored on cloud servers.
+              <p className="font-sans text-base text-[var(--text-muted)] max-w-md leading-relaxed font-light">
+                Echo is designed with a "local-first" philosophy. Your practice audio is processed entirely on this device and never uploaded or stored on cloud servers.
               </p>
 
               {/* Pillars */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full text-left pt-2">
-                <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 rounded-2xl space-y-2">
-                  <Cpu className="w-5 h-5 text-[#c9c6c5]" />
-                  <h3 className="font-sans text-sm font-medium text-white">
-                    On-Device Processing
-                  </h3>
-                  <p className="font-sans text-xs text-neutral-400 leading-normal">
-                    Audio recording stays in a local sandbox, ensuring zero data leakage.
-                  </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-px w-full text-left pt-6 bg-[var(--surface-border)]">
+                <div className="bg-[var(--bg-main)] p-8 flex flex-col gap-4">
+                  <Cpu className="w-5 h-5 text-[var(--text-main)]" />
+                  <div>
+                    <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-main)] mb-2">
+                      On-Device
+                    </h3>
+                    <p className="font-sans text-xs text-[var(--text-muted)] leading-relaxed font-light">
+                      Audio recording stays in a local sandbox, ensuring zero data leakage.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 p-4 rounded-2xl space-y-2">
-                  <CloudOff className="w-5 h-5 text-[#c9c6c5]" />
-                  <h3 className="font-sans text-sm font-medium text-white">
-                    No Cloud Sync
-                  </h3>
-                  <p className="font-sans text-xs text-neutral-400 leading-normal">
-                    Your practice audio stays on your hardware. We have no access to your voice.
-                  </p>
+                <div className="bg-[var(--bg-main)] p-8 flex flex-col gap-4">
+                  <CloudOff className="w-5 h-5 text-[var(--text-main)]" />
+                  <div>
+                    <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-main)] mb-2">
+                      No Cloud Sync
+                    </h3>
+                    <p className="font-sans text-xs text-[var(--text-muted)] leading-relaxed font-light">
+                      Your practice audio stays on your hardware. We have no access to your voice.
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-6 w-full max-w-xs">
+              <div className="pt-8 w-full max-w-[280px]">
                 <button
                   onClick={onComplete}
-                  className="w-full py-4 rounded-full bg-[#c9c6c5] text-[#313030] font-sans font-medium text-sm tracking-widest uppercase hover:bg-white transition-all active:scale-95 shadow-xl flex items-center justify-center gap-2"
+                  className="w-full px-10 py-5 bg-[var(--text-main)] text-[var(--bg-main)] font-mono text-[10px] tracking-[0.2em] uppercase transition-colors hover:bg-[var(--accent-warm)] flex items-center justify-center gap-3"
                 >
                   <span>Continue</span>
                   <ChevronRight className="w-4 h-4" />
@@ -167,13 +176,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ onComplete }) 
       </main>
 
       {/* Progress Dots Nav */}
-      <nav className="fixed bottom-8 left-0 w-full flex justify-center gap-3 items-center z-50">
+      <nav className="fixed bottom-[calc(env(safe-area-inset-bottom)+32px)] left-0 w-full flex justify-center gap-4 items-center z-50 pointer-events-auto">
         {[0, 1, 2].map((idx) => (
           <button
             key={idx}
             onClick={() => setSlide(idx)}
-            className={`w-2 h-2 rounded-full transition-all duration-300 ${
-              slide === idx ? 'bg-white scale-125' : 'bg-white/20 hover:bg-white/40'
+            className={`w-2 h-2 transition-all duration-300 rounded-none ${
+              slide === idx ? 'bg-[var(--text-main)] scale-110' : 'bg-[var(--surface-border)] hover:bg-[var(--text-muted)]'
             }`}
           />
         ))}
