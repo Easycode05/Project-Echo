@@ -136,15 +136,6 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right side: Actions */}
       <div className="flex items-center justify-end gap-1 sm:gap-2 min-w-[120px] pointer-events-auto">
-        {showMicStatus && !showClose && (
-          <button
-            onClick={onOpenSettings}
-            className="w-10 h-10 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
-            aria-label="Microphone status"
-          >
-            <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-        )}
         
         {showClose ? (
           <button
