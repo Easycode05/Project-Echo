@@ -65,6 +65,11 @@ export const DeckSelectionView: React.FC<DeckSelectionViewProps> = ({
     return idx >= 0 ? idx : 0;
   });
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newDeckName, setNewDeckName] = useState('');
+  const [newDeckPrompts, setNewDeckPrompts] = useState('');
+  const [deckToDelete, setDeckToDelete] = useState<string | null>(null);
+
   const sounds = useSoundSystem(soundEnabled);
 
   const filteredDecks = decks.filter(
@@ -88,20 +93,24 @@ export const DeckSelectionView: React.FC<DeckSelectionViewProps> = ({
 
   const handleCreateDeck = () => {
     sounds.playTap();
-    const name = window.prompt("Enter a name for your Custom Deck (e.g., 'Job Interview'):");
-    if (!name || name.trim() === '') return;
-    
-    const promptsStr = window.prompt("Enter your prompts, separated by commas (e.g., 'Tell me about yourself, Why do you want this job?'):");
-    if (!promptsStr || promptsStr.trim() === '') return;
-    
-    saveCustomDeck(name, promptsStr);
+    setShowCreateModal(true);
+  };
+
+  const submitCreateDeck = () => {
+    if (!newDeckName.trim() || !newDeckPrompts.trim()) return;
+    saveCustomDeck(newDeckName, newDeckPrompts);
     window.location.reload(); 
   };
 
   const handleDeleteDeck = (e: React.MouseEvent, deckId: string) => {
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this custom deck?')) {
-      deleteCustomDeck(deckId);
+    sounds.playTap();
+    setDeckToDelete(deckId);
+  };
+
+  const confirmDeleteDeck = () => {
+    if (deckToDelete) {
+      deleteCustomDeck(deckToDelete);
       window.location.reload();
     }
   };
@@ -346,6 +355,79 @@ export const DeckSelectionView: React.FC<DeckSelectionViewProps> = ({
             >
               <ChevronRight className="w-8 h-8" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Create Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-[var(--surface-bg)] border border-[var(--surface-border)] p-8 shadow-2xl flex flex-col space-y-6">
+            <h2 className="text-2xl font-medium text-[var(--text-main)]" style={{ fontFamily: 'var(--font-display)' }}>Create Personal Deck</h2>
+            
+            <div className="space-y-4 flex-grow">
+              <div>
+                <label className="block text-xs font-mono text-[var(--text-muted)] uppercase mb-2">Deck Name</label>
+                <input 
+                  type="text" 
+                  value={newDeckName}
+                  onChange={(e) => setNewDeckName(e.target.value)}
+                  placeholder="e.g., Job Interview"
+                  className="w-full bg-transparent border-b border-[var(--surface-border)] px-0 py-2 text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--text-main)] transition-colors"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-mono text-[var(--text-muted)] uppercase mb-2 mt-6">Prompts (Comma Separated)</label>
+                <textarea 
+                  value={newDeckPrompts}
+                  onChange={(e) => setNewDeckPrompts(e.target.value)}
+                  placeholder="Tell me about yourself, Why do you want this job?"
+                  className="w-full bg-transparent border border-[var(--surface-border)] p-3 text-[var(--text-main)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--text-main)] transition-colors min-h-[100px] resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-4 mt-8 pt-4 border-t border-[var(--surface-border)]">
+              <button 
+                onClick={() => setShowCreateModal(false)}
+                className="flex-1 py-3 text-sm font-mono uppercase border border-[var(--surface-border)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={submitCreateDeck}
+                disabled={!newDeckName.trim() || !newDeckPrompts.trim()}
+                className="flex-1 py-3 text-sm font-mono uppercase bg-[var(--text-main)] text-[var(--bg-main)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--accent-warm)] transition-colors"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {deckToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[var(--surface-bg)] border border-[var(--surface-border)] p-8 shadow-2xl flex flex-col space-y-6 text-center">
+            <h2 className="text-2xl font-medium text-[var(--text-main)]" style={{ fontFamily: 'var(--font-display)' }}>Delete Deck?</h2>
+            <p className="text-[var(--text-muted)] font-light">Are you sure you want to permanently delete this custom deck?</p>
+            
+            <div className="flex gap-4 mt-4">
+              <button 
+                onClick={() => setDeckToDelete(null)}
+                className="flex-1 py-3 text-sm font-mono uppercase border border-[var(--surface-border)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDeleteDeck}
+                className="flex-1 py-3 text-sm font-mono uppercase bg-red-600/90 hover:bg-red-500 text-white transition-colors"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
