@@ -129,7 +129,7 @@ export const Orb: React.FC<OrbProps> = ({
             {children}
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 };
