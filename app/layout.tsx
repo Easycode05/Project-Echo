@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   description: 'Build speaking confidence one topic at a time. Practice every day with Echo — a private, local-first speaking trainer.',
   manifest: '/manifest.json',
   icons: {
-    icon: '/favicon.svg',
-    apple: '/favicon.svg',
+    icon: '/icon.png',
+    apple: '/apple-touch-icon.png',
   },
   appleWebApp: {
     capable: true,
