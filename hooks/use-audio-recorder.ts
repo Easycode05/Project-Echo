@@ -11,7 +11,7 @@ export function useAudioRecorder() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const animFrameRef = useRef<number | null>(null);
+  const volumeIntervalRef = useRef<number | null>(null);
 
   const startRecording = useCallback(async () => {
     try {
@@ -40,9 +40,9 @@ export function useAudioRecorder() {
         const average = sum / bufferLength;
         const norm = Math.min(1, Math.max(0, (average / 128) * 1.5));
         setAudioLevel(norm);
-        animFrameRef.current = requestAnimationFrame(updateVolume);
       };
-      updateVolume();
+      // Throttle updates to 10fps to prevent mobile browser crash/lag
+      volumeIntervalRef.current = window.setInterval(updateVolume, 100);
 
       // MediaRecorder for local storage
       const mediaRecorder = new MediaRecorder(stream);
@@ -68,8 +68,8 @@ export function useAudioRecorder() {
     return new Promise((resolve) => {
       const mr = mediaRecorderRef.current;
 
-      if (animFrameRef.current) {
-        cancelAnimationFrame(animFrameRef.current);
+      if (volumeIntervalRef.current) {
+        window.clearInterval(volumeIntervalRef.current);
       }
       if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
         audioCtxRef.current.close().catch(() => {});
@@ -96,7 +96,7 @@ export function useAudioRecorder() {
 
   useEffect(() => {
     return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (volumeIntervalRef.current) window.clearInterval(volumeIntervalRef.current);
       if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
         audioCtxRef.current.close().catch(() => {});
       }
