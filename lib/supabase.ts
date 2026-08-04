@@ -32,7 +32,7 @@ export async function getDecks(): Promise<Deck[]> {
     
     if (error) {
       console.error('Error fetching decks:', error);
-      return DECKS; // Fallback
+      return [...getLocalCustomDecks(), ...DECKS]; // Fallback with custom decks
     }
     
     if (data && data.length > 0) {
@@ -74,7 +74,10 @@ export async function getPrompts(deckId: string): Promise<Prompt[]> {
     
     if (error) {
       console.error('Error fetching prompts:', error);
-      return deckId === 'surprise' ? PROMPTS : PROMPTS.filter(p => p.deckId === deckId);
+      const customFallback = getLocalCustomPrompts().filter(p => deckId === 'surprise' || p.deckId === deckId);
+      return deckId === 'surprise' 
+        ? [...customFallback, ...PROMPTS] 
+        : [...customFallback, ...PROMPTS.filter(p => p.deckId === deckId)];
     }
 
     if (data && data.length > 0) {
