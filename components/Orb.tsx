@@ -106,7 +106,7 @@ export const Orb: React.FC<OrbProps> = ({
               strokeWidth="1.5"
               className="opacity-30"
             />
-            <motion.circle
+            <circle
               cx="50"
               cy="50"
               r="48"
@@ -115,8 +115,10 @@ export const Orb: React.FC<OrbProps> = ({
               strokeWidth="2"
               strokeLinecap="round"
               strokeDasharray="301.59"
-              animate={{ strokeDashoffset: 301.59 - (progress * 301.59) }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
+              style={{
+                strokeDashoffset: 301.59 - (progress * 301.59),
+                transition: 'stroke-dashoffset 0.5s ease-out',
+              }}
             />
           </svg>
         )}
