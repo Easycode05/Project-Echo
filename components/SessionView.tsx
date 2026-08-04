@@ -36,7 +36,7 @@ export const SessionView: React.FC<SessionViewProps> = ({
   const [secondsElapsed, setSecondsElapsed] = useState<number>(0);
   const [showPromptText, setShowPromptText] = useState<boolean>(true);
 
-  const { audioLevel, audioUrl, startRecording, stopRecording } =
+  const { audioUrl, startRecording, stopRecording } =
     useAudioRecorder();
 
   const sounds = useSoundSystem(soundEnabled);
@@ -234,7 +234,6 @@ export const SessionView: React.FC<SessionViewProps> = ({
               <div className="scale-100 sm:scale-110 md:scale-125">
                 <Orb 
                   accentColor={deck.accentColor} 
-                  audioLevel={audioLevel} 
                   size={280}
                   progress={1 - (secondsRemaining / targetDurationSeconds)}
                 >

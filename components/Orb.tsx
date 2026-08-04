@@ -4,7 +4,6 @@ import React from 'react';
 
 interface OrbProps {
   accentColor?: string;
-  audioLevel?: number; // 0 to 1
   size?: number;
   pulseSpeed?: number;
   interactiveMouse?: boolean;
@@ -14,7 +13,6 @@ interface OrbProps {
 
 export const Orb: React.FC<OrbProps> = ({
   accentColor = '#3a3939',
-  audioLevel = 0,
   size = 320,
   children,
   progress,
