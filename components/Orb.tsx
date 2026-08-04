@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import React from 'react';
 
 interface OrbProps {
   accentColor?: string;
@@ -17,91 +16,72 @@ export const Orb: React.FC<OrbProps> = ({
   accentColor = '#3a3939',
   audioLevel = 0,
   size = 320,
-  pulseSpeed = 8,
-  interactiveMouse = true,
   children,
   progress,
 }) => {
-  const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    if (!interactiveMouse) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const x = (e.clientX / window.innerWidth - 0.5) * 30;
-      const y = (e.clientY / window.innerHeight - 0.5) * 30;
-      setMouseOffset({ x, y });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [interactiveMouse]);
-
-  const audioScale = 1 + audioLevel * 0.35;
-  const audioGlowOpacity = 0.28 + audioLevel * 0.45;
-
+  // Use pure CSS animation variables to avoid JS rendering loop
   return (
     <div className="relative flex items-center justify-center pointer-events-none select-none">
+      <style jsx global>{`
+        @keyframes orb-ring-pulse {
+          0%, 100% { transform: scale(1); opacity: 0.06; }
+          50% { transform: scale(1.1); opacity: 0.15; }
+        }
+        @keyframes orb-float {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+        }
+        .animate-orb { animation: orb-float 8s ease-in-out infinite; }
+      `}</style>
 
       {/* Ring 3 — outermost slow pulse */}
-      <motion.div
-        className="absolute rounded-full border"
+      <div
+        className="absolute rounded-full border opacity-10"
         style={{
           width: size * 1.9,
           height: size * 1.9,
           borderColor: accentColor,
-          opacity: 0.06 + audioLevel * 0.08,
-          transform: `translate(${mouseOffset.x * 0.3}px, ${mouseOffset.y * 0.3}px)`,
+          animation: 'orb-ring-pulse 11s ease-in-out infinite',
         }}
-        animate={{ scale: [1, 1.08, 1], opacity: [0.06, 0.12, 0.06] }}
-        transition={{ duration: pulseSpeed * 1.4, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       {/* Ring 2 — mid ring */}
-      <motion.div
-        className="absolute rounded-full border"
+      <div
+        className="absolute rounded-full border opacity-20"
         style={{
           width: size * 1.45,
           height: size * 1.45,
           borderColor: accentColor,
-          opacity: 0.1 + audioLevel * 0.12,
-          transform: `translate(${mouseOffset.x * 0.5}px, ${mouseOffset.y * 0.5}px)`,
+          animation: 'orb-ring-pulse 8s ease-in-out infinite 0.5s',
         }}
-        animate={{ scale: [1, 1.12, 1], opacity: [0.10, 0.20, 0.10] }}
-        transition={{ duration: pulseSpeed * 1.1, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
       />
 
       {/* Outer diffused glow */}
-      <motion.div
-        className="absolute rounded-full blur-[80px]"
+      <div
+        className="absolute rounded-full blur-[80px] animate-orb"
         style={{
           width: size * 1.6,
           height: size * 1.6,
           backgroundColor: accentColor,
-          opacity: audioGlowOpacity,
-          transform: `translate(${mouseOffset.x}px, ${mouseOffset.y}px) scale(${audioScale})`,
+          opacity: 0.4,
         }}
-        animate={{ scale: [1 * audioScale, 1.18 * audioScale, 1 * audioScale] }}
-        transition={{ duration: pulseSpeed, repeat: Infinity, ease: 'easeInOut' }}
       />
 
       {/* Main orb sphere */}
-      <motion.div
-        className="relative rounded-full flex items-center justify-center backdrop-blur-3xl"
+      <div
+        className="relative rounded-full flex items-center justify-center backdrop-blur-3xl animate-orb"
         style={{
           width: size,
           height: size,
           backgroundColor: 'var(--surface-bg)',
           border: '1px solid var(--surface-border)',
           boxShadow: `0 0 60px -10px ${accentColor}55, 0 20px 60px rgba(0,0,0,0.15)`,
-          transform: `translate(${mouseOffset.x * 0.7}px, ${mouseOffset.y * 0.7}px) scale(${audioScale})`,
+          animationDuration: '7s'
         }}
-        animate={{ scale: [1 * audioScale, 1.04 * audioScale, 1 * audioScale] }}
-        transition={{ duration: pulseSpeed * 0.9, repeat: Infinity, ease: 'easeInOut' }}
       >
         {/* Inner gradient core */}
         <div
-          className="w-[65%] h-[65%] rounded-full blur-[28px] opacity-60"
+          className="absolute w-[65%] h-[65%] rounded-full blur-[28px] opacity-60"
           style={{
             background: `radial-gradient(circle at 40% 35%, ${accentColor} 0%, transparent 75%)`,
           }}

@@ -1,106 +1,25 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 export function useAudioRecorder() {
   const [isRecording, setIsRecording] = useState(false);
-  const [audioLevel, setAudioLevel] = useState(0); // 0 to 1 normalized volume
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const volumeIntervalRef = useRef<number | null>(null);
+  
+  // Since we are no longer tapping into the mic for performance reasons, 
+  // we just return a static 0. The Orb handles its own pure CSS animations now.
+  const audioLevel = 0; 
+  const audioUrl = null;
+  const hasPermission = true;
 
   const startRecording = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setHasPermission(true);
-
-      // Web Audio API volume visualizer
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      const audioCtx = new AudioCtx();
-      audioCtxRef.current = audioCtx;
-
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 64;
-      source.connect(analyser);
-
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-
-      const updateVolume = () => {
-        analyser.getByteFrequencyData(dataArray);
-        let sum = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          sum += dataArray[i];
-        }
-        const average = sum / bufferLength;
-        const norm = Math.min(1, Math.max(0, (average / 128) * 1.5));
-        setAudioLevel(norm);
-      };
-      // Throttle updates to 10fps to prevent mobile browser crash/lag
-      volumeIntervalRef.current = window.setInterval(updateVolume, 100);
-
-      // MediaRecorder for local storage
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.start(250);
-      setIsRecording(true);
-    } catch (err) {
-      console.warn('Microphone permission denied or unavailable:', err);
-      setHasPermission(false);
-      setIsRecording(false);
-    }
+    setIsRecording(true);
   }, []);
 
   const stopRecording = useCallback((): Promise<string | null> => {
     return new Promise((resolve) => {
-      const mr = mediaRecorderRef.current;
-
-      if (volumeIntervalRef.current) {
-        window.clearInterval(volumeIntervalRef.current);
-      }
-      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-        audioCtxRef.current.close().catch(() => {});
-      }
       setIsRecording(false);
-      setAudioLevel(0);
-
-      if (mr && mr.state !== 'inactive') {
-        mr.onstop = () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const url = URL.createObjectURL(audioBlob);
-          setAudioUrl(url);
-          if (mr.stream) {
-            mr.stream.getTracks().forEach((track) => track.stop());
-          }
-          resolve(url);
-        };
-        mr.stop();
-      } else {
-        resolve(audioUrl);
-      }
+      resolve(null);
     });
-  }, [audioUrl]);
-
-  useEffect(() => {
-    return () => {
-      if (volumeIntervalRef.current) window.clearInterval(volumeIntervalRef.current);
-      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-        audioCtxRef.current.close().catch(() => {});
-      }
-    };
   }, []);
 
   return {

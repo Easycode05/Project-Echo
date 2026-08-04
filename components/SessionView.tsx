@@ -238,19 +238,12 @@ export const SessionView: React.FC<SessionViewProps> = ({
                   size={280}
                   progress={1 - (secondsRemaining / targetDurationSeconds)}
                 >
-                  <AnimatePresence mode="popLayout">
-                    <motion.div
-                      key={secondsRemaining}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.05 }}
-                      transition={{ duration: 0.2 }}
-                      className="text-5xl md:text-6xl font-light text-[var(--text-main)] tracking-[-0.02em] tabular-nums leading-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
-                      style={{ fontFamily: 'var(--font-display)' }}
-                    >
-                      {formatTime(secondsRemaining)}
-                    </motion.div>
-                  </AnimatePresence>
+                  <div
+                    className="text-5xl md:text-6xl font-light text-[var(--text-main)] tracking-[-0.02em] tabular-nums leading-none drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
+                    style={{ fontFamily: 'var(--font-display)' }}
+                  >
+                    {formatTime(secondsRemaining)}
+                  </div>
                 </Orb>
               </div>
             </div>
