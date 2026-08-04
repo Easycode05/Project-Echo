@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
       }`}
     >
       {/* Left side: Logo & Back Button */}
-      <div className="flex items-center gap-6 min-w-[120px] pointer-events-auto">
+      <div className="flex items-center gap-6 w-auto flex-shrink-0 sm:min-w-[120px] pointer-events-auto">
         {showBack && (
           <button
             onClick={onBack}
@@ -82,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Centre Navigation (Desktop/Tablet) or Title */}
-      <div className="flex-1 flex justify-center pointer-events-auto">
+      <div className="flex-1 min-w-0 flex justify-center pointer-events-auto mx-2">
         {onSelectTab && activeTab ? (
           <nav className="flex items-center gap-1 sm:gap-2 p-1 bg-[var(--surface-bg)]/50 backdrop-blur-md border border-[var(--surface-border)] rounded-full">
             {TABS.map((tab) => {
@@ -135,7 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Right side: Actions */}
-      <div className="flex items-center justify-end gap-1 sm:gap-2 min-w-[120px] pointer-events-auto">
+      <div className="flex items-center justify-end gap-1 sm:gap-2 w-auto flex-shrink-0 sm:min-w-[120px] pointer-events-auto">
         
         {showClose ? (
           <button
