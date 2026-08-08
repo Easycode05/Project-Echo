@@ -32,6 +32,8 @@ interface DeckSelectionViewProps {
   onSelectDeck: (deck: Deck) => void;
   onProceedToPrompt: (deck: Deck) => void;
   soundEnabled?: boolean;
+  user?: any;
+  onRequireAuth?: () => void;
 }
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -56,6 +58,8 @@ export const DeckSelectionView: React.FC<DeckSelectionViewProps> = ({
   onSelectDeck,
   onProceedToPrompt,
   soundEnabled = true,
+  user,
+  onRequireAuth,
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'carousel'>('grid');
   const [activeHoverId, setActiveHoverId] = useState<DeckId | string>(currentDeckId);
@@ -93,12 +97,16 @@ export const DeckSelectionView: React.FC<DeckSelectionViewProps> = ({
 
   const handleCreateDeck = () => {
     sounds.playTap();
+    if (!user) {
+      onRequireAuth?.();
+      return;
+    }
     setShowCreateModal(true);
   };
 
-  const submitCreateDeck = () => {
+  const submitCreateDeck = async () => {
     if (!newDeckName.trim() || !newDeckPrompts.trim()) return;
-    saveCustomDeck(newDeckName, newDeckPrompts);
+    await saveCustomDeck(newDeckName, newDeckPrompts);
     window.location.reload(); 
   };
 
@@ -108,9 +116,9 @@ export const DeckSelectionView: React.FC<DeckSelectionViewProps> = ({
     setDeckToDelete(deckId);
   };
 
-  const confirmDeleteDeck = () => {
+  const confirmDeleteDeck = async () => {
     if (deckToDelete) {
-      deleteCustomDeck(deckToDelete);
+      await deleteCustomDeck(deckToDelete);
       window.location.reload();
     }
   };

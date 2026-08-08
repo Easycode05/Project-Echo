@@ -30,9 +30,11 @@ export async function getDecks(): Promise<Deck[]> {
       .select('*')
       .order('created_at', { ascending: true });
     
+    const cloudCustomDecks = await getCloudCustomDecks();
+    
     if (error) {
       console.error('Error fetching decks:', error);
-      return [...getLocalCustomDecks(), ...DECKS]; // Fallback with custom decks
+      return [...cloudCustomDecks, ...getLocalCustomDecks(), ...DECKS]; // Fallback with custom decks
     }
     
     if (data && data.length > 0) {
@@ -49,7 +51,7 @@ export async function getDecks(): Promise<Deck[]> {
         iconBgClass: '',
         iconName: d.icon,
       })) as Deck[];
-      return [...getLocalCustomDecks(), ...appDecks];
+      return [...cloudCustomDecks, ...getLocalCustomDecks(), ...appDecks];
     }
   }
   
@@ -67,17 +69,25 @@ export async function getPrompts(deckId: string): Promise<Prompt[]> {
       .eq('active', true);
       
     if (deckId !== 'surprise') {
+      // If it's a custom cloud deck, fetch from there directly
+      if (!deckId.startsWith('custom_')) {
+        const cloudPrompts = await getCloudCustomPrompts(deckId);
+        if (cloudPrompts.length > 0) {
+          return cloudPrompts;
+        }
+      }
       query = query.eq('deck_id', deckId);
     }
 
     const { data, error } = await query;
+    const cloudCustomPrompts = deckId === 'surprise' ? [] : await getCloudCustomPrompts(deckId);
+    const customLocal = getLocalCustomPrompts().filter(p => deckId === 'surprise' || p.deckId === deckId);
     
     if (error) {
       console.error('Error fetching prompts:', error);
-      const customFallback = getLocalCustomPrompts().filter(p => deckId === 'surprise' || p.deckId === deckId);
       return deckId === 'surprise' 
-        ? [...customFallback, ...PROMPTS] 
-        : [...customFallback, ...PROMPTS.filter(p => p.deckId === deckId)];
+        ? [...customLocal, ...PROMPTS] 
+        : [...cloudCustomPrompts, ...customLocal, ...PROMPTS.filter(p => p.deckId === deckId)];
     }
 
     if (data && data.length > 0) {
@@ -88,8 +98,7 @@ export async function getPrompts(deckId: string): Promise<Prompt[]> {
         difficulty: p.difficulty,
       })) as Prompt[];
       
-      const custom = getLocalCustomPrompts().filter(p => deckId === 'surprise' || p.deckId === deckId);
-      return [...custom, ...appPrompts];
+      return [...cloudCustomPrompts, ...customLocal, ...appPrompts];
     }
   }
 
@@ -135,11 +144,13 @@ export async function recordSessionBackend(
 ) {
   if (supabase) {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       await supabase.from('sessions').insert({
-        deck_id: deckId,
+        deck_id: deckId.startsWith('custom_') ? null : deckId, // Avoid foreign key errors for local custom decks
         duration,
         completed,
         continued_after_timer: continuedAfterTimer,
+        user_id: session?.user?.id || null,
       });
     } catch (e) {
       console.error('Failed to log event', e);
@@ -148,11 +159,9 @@ export async function recordSessionBackend(
 }
 
 /**
- * Helper to save custom decks to local storage
+ * Helper to save custom decks. Saves to Supabase if logged in, otherwise local.
  */
-export function saveCustomDeck(name: string, promptsText: string) {
-  if (typeof window === 'undefined') return;
-  
+export async function saveCustomDeck(name: string, promptsText: string) {
   const deckId = 'custom_' + Date.now();
   const newDeck: Deck = {
     id: deckId as any,
@@ -180,19 +189,67 @@ export function saveCustomDeck(name: string, promptsText: string) {
 
   if (newPrompts.length === 0) return;
 
-  const currentDecks = getLocalCustomDecks();
-  localStorage.setItem('echo_custom_decks', JSON.stringify([...currentDecks, newDeck]));
-  
-  const currentPrompts = getLocalCustomPrompts();
-  localStorage.setItem('echo_custom_prompts', JSON.stringify([...currentPrompts, ...newPrompts]));
+  let savedToCloud = false;
+
+  if (supabase) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      try {
+        const { data: deckData, error: deckError } = await supabase
+          .from('custom_decks')
+          .insert({
+            user_id: session.user.id,
+            name: newDeck.name,
+            description: newDeck.description,
+            theme: newDeck.environmentMood,
+            accent_color: newDeck.accentColor,
+          })
+          .select()
+          .single();
+
+        if (!deckError && deckData) {
+          const cloudPrompts = newPrompts.map(p => ({
+            deck_id: deckData.id,
+            user_id: session.user.id,
+            prompt: p.text,
+          }));
+
+          const { error: promptError } = await supabase
+            .from('custom_prompts')
+            .insert(cloudPrompts);
+            
+          if (!promptError) {
+            savedToCloud = true;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to save custom deck to cloud', err);
+      }
+    }
+  }
+
+  if (!savedToCloud && typeof window !== 'undefined') {
+    const currentDecks = getLocalCustomDecks();
+    localStorage.setItem('echo_custom_decks', JSON.stringify([...currentDecks, newDeck]));
+    
+    const currentPrompts = getLocalCustomPrompts();
+    localStorage.setItem('echo_custom_prompts', JSON.stringify([...currentPrompts, ...newPrompts]));
+  }
 }
 
 /**
- * Helper to delete a custom deck from local storage
+ * Helper to delete a custom deck.
  */
-export function deleteCustomDeck(deckId: string) {
+export async function deleteCustomDeck(deckId: string) {
+  if (supabase && !deckId.startsWith('custom_')) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      await supabase.from('custom_decks').delete().eq('id', deckId);
+      return;
+    }
+  }
+
   if (typeof window === 'undefined') return;
-  
   const currentDecks = getLocalCustomDecks();
   const updatedDecks = currentDecks.filter(d => d.id !== deckId);
   localStorage.setItem('echo_custom_decks', JSON.stringify(updatedDecks));
@@ -200,4 +257,57 @@ export function deleteCustomDeck(deckId: string) {
   const currentPrompts = getLocalCustomPrompts();
   const updatedPrompts = currentPrompts.filter(p => p.deckId !== deckId);
   localStorage.setItem('echo_custom_prompts', JSON.stringify(updatedPrompts));
+}
+
+/**
+ * Fetch cloud custom decks
+ */
+export async function getCloudCustomDecks(): Promise<Deck[]> {
+  if (!supabase) return [];
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return [];
+
+  const { data, error } = await supabase
+    .from('custom_decks')
+    .select('*')
+    .eq('user_id', session.user.id);
+
+  if (error || !data) return [];
+
+  return data.map(d => ({
+    id: d.id,
+    name: d.name,
+    description: d.description || 'Personal custom deck.',
+    roomSubtitle: d.theme || 'Your personal custom prompts.',
+    environmentMood: d.theme || 'A quiet, personal space for reflection.',
+    accentColor: d.accent_color || '#9333EA',
+    glowClass: '',
+    cardBgClass: '',
+    iconBgClass: '',
+    iconName: 'Sparkles',
+  }));
+}
+
+/**
+ * Fetch cloud custom prompts
+ */
+export async function getCloudCustomPrompts(deckId: string): Promise<Prompt[]> {
+  if (!supabase) return [];
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) return [];
+
+  const { data, error } = await supabase
+    .from('custom_prompts')
+    .select('*')
+    .eq('user_id', session.user.id)
+    .eq('deck_id', deckId);
+
+  if (error || !data) return [];
+
+  return data.map(p => ({
+    id: p.id,
+    deckId: p.deck_id,
+    text: p.prompt,
+    difficulty: 'reflective'
+  }));
 }

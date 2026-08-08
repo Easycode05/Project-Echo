@@ -10,6 +10,7 @@ import { CompletionView } from '../components/CompletionView';
 import { HistoryView } from '../components/HistoryView';
 import { OnboardingModal } from '../components/OnboardingModal';
 import { SettingsModal } from '../components/SettingsModal';
+import { AuthModal } from '../components/AuthModal';
 import { Deck, UserProgress } from '../lib/types';
 import { DECKS } from '../lib/data';
 import {
@@ -17,7 +18,7 @@ import {
   saveProgress,
   recordCompletedSession,
 } from '../lib/storage';
-import { trackEvent, recordSessionBackend, getDecks } from '../lib/supabase';
+import { trackEvent, recordSessionBackend, getDecks, supabase } from '../lib/supabase';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function Page() {
@@ -65,6 +66,23 @@ export default function Page() {
     return false;
   });
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  
+  // Auth state
+  const [user, setUser] = useState<any>(null);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+
+  // Sync auth state
+  useEffect(() => {
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        setUser(session?.user ?? null);
+      });
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, []);
 
   // Sync theme attribute on document root
   useEffect(() => {
@@ -106,6 +124,10 @@ export default function Page() {
 
   // Handle Bottom Nav selection
   const handleSelectTab = (tab: 'home' | 'decks' | 'history') => {
+    if (tab === 'history' && !user) {
+      setShowAuthModal(true);
+      return;
+    }
     setActiveTab(tab);
     if (tab === 'home') setView('home');
     if (tab === 'decks') setView('decks');
@@ -256,6 +278,8 @@ export default function Page() {
             <DeckSelectionView
               decks={decks}
               currentDeckId={activeDeck.id}
+              user={user}
+              onRequireAuth={() => setShowAuthModal(true)}
               onSelectDeck={(deck) => setActiveDeck(deck)}
               onProceedToPrompt={(deck) => {
                 trackEvent('deck_selected', { deck_id: deck.id });
@@ -339,6 +363,11 @@ export default function Page() {
       {showSettings && (
         <SettingsModal
           progress={progress}
+          user={user}
+          onRequireAuth={() => {
+            setShowSettings(false);
+            setShowAuthModal(true);
+          }}
           onClose={() => setShowSettings(false)}
           onUpdateProgress={(updated) => {
             setProgress(updated);
@@ -347,6 +376,13 @@ export default function Page() {
           onResetData={handleResetData}
         />
       )}
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        soundEnabled={progress.soundEnabled}
+      />
     </div>
   );
 }

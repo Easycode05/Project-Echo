@@ -5,9 +5,12 @@ import { X, Mic, Volume2, ShieldCheck, Trash2, Sun, Moon } from 'lucide-react';
 import { UserProgress } from '../lib/types';
 import { motion } from 'framer-motion';
 import { useSoundSystem } from '../hooks/use-sound-system';
+import { supabase } from '../lib/supabase';
 
 interface SettingsModalProps {
   progress: UserProgress;
+  user?: any;
+  onRequireAuth?: () => void;
   onClose: () => void;
   onUpdateProgress: (updated: UserProgress) => void;
   onResetData: () => void;
@@ -15,6 +18,8 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   progress,
+  user,
+  onRequireAuth,
   onClose,
   onUpdateProgress,
   onResetData,
@@ -139,6 +144,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
+          {/* Account */}
+          <div className="flex items-center justify-between border-b border-[var(--surface-border)] pb-8">
+            <div className="flex items-start gap-4">
+              <div className="w-5 h-5 mt-1 flex items-center justify-center">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-400">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              </div>
+              <div>
+                <div className="font-sans text-base font-medium text-[var(--text-main)]">
+                  Echo Account
+                </div>
+                <div className="font-sans text-sm text-[var(--text-muted)] mt-1 font-light">
+                  {user ? `Signed in as ${user.email}` : 'Sync history & custom decks'}
+                </div>
+              </div>
+            </div>
+            {user ? (
+              <button
+                onClick={async () => {
+                  sounds.playTap();
+                  await supabase?.auth.signOut();
+                }}
+                className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)] hover:text-rose-400 transition-colors"
+              >
+                Sign Out
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  sounds.playTap();
+                  onRequireAuth?.();
+                }}
+                className="font-mono text-[10px] uppercase tracking-[0.2em] px-4 py-2 bg-[var(--text-main)] text-[var(--bg-main)] hover:bg-[var(--accent-warm)] transition-colors"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+
           {/* Audio Recording */}
           <div className="flex items-center justify-between border-b border-[var(--surface-border)] pb-8">
             <div className="flex items-start gap-4">
@@ -196,10 +242,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="p-6 bg-[var(--surface-bg)] border-l-2 border-emerald-500 space-y-3">
           <div className="flex items-center gap-3 text-emerald-500 font-mono text-xs">
             <ShieldCheck className="w-4 h-4" />
-            <span className="uppercase tracking-[0.2em]">Local-First Sandbox</span>
+            <span className="uppercase tracking-[0.2em]">Privacy Sandbox</span>
           </div>
           <p className="font-sans text-sm text-[var(--text-muted)] leading-relaxed font-light">
-            Zero cloud uploads. Zero speech transcription or AI evaluations. All practice data remains strictly on your device.
+            Zero cloud uploads. Zero speech transcription. All voice practice data remains strictly on your device.
           </p>
         </div>
 
