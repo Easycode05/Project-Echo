@@ -38,12 +38,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
         });
         if (error) throw error;
-        // Automatically sign in or show success
+        
+        if (data.user && !data.session) {
+          setError("Account created! Please check your email to confirm your address.");
+          return; // Stop here, do not close modal yet
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
