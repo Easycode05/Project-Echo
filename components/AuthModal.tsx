@@ -25,6 +25,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isResetPassword, setIsResetPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +40,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     sounds.playTap();
 
     try {
+      if (isResetPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/` : undefined,
+        });
+        if (error) throw error;
+        setError("Password reset email sent! Check your inbox.");
+        setLoading(false);
+        return; // Don't close modal immediately so they can read the message
+      }
+
       if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -51,8 +62,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         if (error) throw error;
         
         if (data.user && !data.session) {
-          setError("Account created! Please check your email to confirm your address.");
-          return; // Stop here, do not close modal yet
+          // Attempt manual sign in just in case email confirm is disabled but session wasn't returned
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          
+          if (signInError || !signInData.session) {
+            setError("Account created! Please check your email to confirm your address.");
+            setLoading(false);
+            return; // Stop here, do not close modal yet
+          }
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -141,12 +161,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <div className="w-full border-t border-[var(--surface-border)]"></div>
                 </div>
                 <div className="relative flex justify-center text-xs">
-                  <span className="bg-[var(--surface-bg)] px-4 text-[var(--text-muted)] font-mono uppercase tracking-widest">Or email</span>
+                  <span className="bg-[var(--surface-bg)] px-4 text-[var(--text-muted)] font-mono uppercase tracking-widest">
+                    {isResetPassword ? 'Reset Password' : 'Or email'}
+                  </span>
                 </div>
               </div>
 
               <form onSubmit={handleEmailAuth} className="space-y-4">
-                {isSignUp && (
+                {isSignUp && !isResetPassword && (
                   <input
                     type="text"
                     placeholder="Display Name"
@@ -164,23 +186,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   className="w-full bg-transparent border-b border-[var(--surface-border)] px-0 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--text-main)] transition-colors"
                   required
                 />
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-transparent border-b border-[var(--surface-border)] px-0 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--text-main)] transition-colors pr-10"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+                
+                {!isResetPassword && (
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-transparent border-b border-[var(--surface-border)] px-0 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--text-main)] transition-colors pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                )}
                 
                 {error && (
                   <p className="text-rose-500 text-xs font-mono">{error}</p>
@@ -195,22 +220,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      {isSignUp ? 'Create Account' : 'Sign In'} <ArrowRight className="w-4 h-4" />
+                      {isResetPassword ? 'Send Reset Link' : isSignUp ? 'Create Account' : 'Sign In'} <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
               </form>
 
-              <p className="text-center text-xs text-[var(--text-muted)] font-mono">
-                {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-                <button
-                  type="button"
-                  onClick={() => setIsSignUp(!isSignUp)}
-                  className="text-[var(--text-main)] hover:underline"
-                >
-                  {isSignUp ? 'Sign In' : 'Sign Up'}
-                </button>
-              </p>
+              <div className="flex flex-col gap-2 items-center text-xs font-mono">
+                {!isResetPassword && !isSignUp && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsResetPassword(true);
+                      setError(null);
+                    }}
+                    className="text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+                  >
+                    Forgot your password?
+                  </button>
+                )}
+                
+                <p className="text-[var(--text-muted)]">
+                  {isResetPassword ? 'Remembered your password?' : isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isResetPassword) {
+                        setIsResetPassword(false);
+                        setIsSignUp(false);
+                      } else {
+                        setIsSignUp(!isSignUp);
+                      }
+                      setError(null);
+                    }}
+                    className="text-[var(--text-main)] hover:underline"
+                  >
+                    {isResetPassword ? 'Sign In' : isSignUp ? 'Sign In' : 'Sign Up'}
+                  </button>
+                </p>
+              </div>
             </div>
           </motion.div>
         </div>
