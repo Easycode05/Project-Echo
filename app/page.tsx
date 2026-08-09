@@ -354,7 +354,16 @@ export default function Page() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
-            <HistoryView progress={progress} />
+            <HistoryView 
+              progress={progress} 
+              user={user}
+              onSignOut={async () => {
+                if (supabase) {
+                  await supabase.auth.signOut();
+                  setUser(null);
+                }
+              }}
+            />
           </motion.div>
         )}
       </AnimatePresence>

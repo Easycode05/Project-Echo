@@ -24,6 +24,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface HistoryViewProps {
   progress: UserProgress;
+  user?: any;
+  onSignOut?: () => void;
 }
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -40,7 +42,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Shuffle,
 };
 
-export const HistoryView: React.FC<HistoryViewProps> = ({ progress }) => {
+export const HistoryView: React.FC<HistoryViewProps> = ({ progress, user, onSignOut }) => {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
   // Group past sessions by relative day
@@ -78,16 +80,27 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ progress }) => {
       <main className="relative z-10 w-full max-w-[800px] mx-auto flex flex-col space-y-20">
         
         {/* Header */}
-        <div className="space-y-4">
-          <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--text-muted)] uppercase">
-            Activity Log
-          </span>
-          <h1
-            className="text-5xl md:text-7xl font-light text-[var(--text-main)] tracking-[-0.02em] leading-none"
-            style={{ fontFamily: 'var(--font-display)' }}
-          >
-            Your History
-          </h1>
+        <div className="space-y-4 flex justify-between items-end">
+          <div className="space-y-4">
+            <span className="font-mono text-[10px] tracking-[0.2em] text-[var(--text-muted)] uppercase flex items-center gap-2">
+              <Activity className="w-3.5 h-3.5" />
+              Activity Log
+            </span>
+            <h1
+              className="text-5xl md:text-7xl font-light text-[var(--text-main)] tracking-[-0.02em] leading-none"
+              style={{ fontFamily: 'var(--font-display)' }}
+            >
+              {user ? `Welcome, ${user.user_metadata?.name || user.email?.split('@')[0]}` : 'Your History'}
+            </h1>
+          </div>
+          {user && onSignOut && (
+            <button
+              onClick={onSignOut}
+              className="font-mono text-[10px] uppercase tracking-[0.2em] border-b border-transparent hover:border-rose-400 text-[var(--text-muted)] hover:text-rose-400 transition-colors pb-1 mb-2"
+            >
+              Sign Out
+            </button>
+          )}
         </div>
 
         {/* Consistency Section */}

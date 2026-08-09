@@ -246,7 +246,7 @@ export const DeckSelectionView: React.FC<DeckSelectionViewProps> = ({
                     </div>
                     <h3 className="font-sans text-xl font-medium text-[var(--text-main)] tracking-tight flex items-center justify-between">
                       <span>{deck.name}</span>
-                      {deck.id.startsWith('custom_') && (
+                      {!['reflection', 'stories', 'life', 'philosophy', 'spirituality', 'imagination', 'fun', 'relationships', 'career', 'medicine', 'dentistry', 'surprise'].includes(deck.id) && (
                         <button
                           onClick={(e) => handleDeleteDeck(e, deck.id)}
                           className="text-[var(--text-muted)] hover:text-red-500 transition-colors p-1"
@@ -321,7 +321,7 @@ export const DeckSelectionView: React.FC<DeckSelectionViewProps> = ({
                         >
                           {deck.name}
                         </h2>
-                        {deck.id.startsWith('custom_') && (
+                        {!['reflection', 'stories', 'life', 'philosophy', 'spirituality', 'imagination', 'fun', 'relationships', 'career', 'medicine', 'dentistry', 'surprise'].includes(deck.id) && (
                           <button
                             onClick={(e) => handleDeleteDeck(e, deck.id)}
                             className="text-[var(--text-muted)] hover:text-red-500 transition-colors p-2 rounded-full border border-transparent hover:border-red-500/30 bg-red-500/0 hover:bg-red-500/10"
@@ -370,7 +370,7 @@ export const DeckSelectionView: React.FC<DeckSelectionViewProps> = ({
       {/* Create Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-[var(--surface-bg)] border border-[var(--surface-border)] p-8 shadow-2xl flex flex-col space-y-6">
+          <div className="w-full max-w-lg bg-[var(--bg-main)] border border-[var(--surface-border)] p-8 shadow-2xl flex flex-col space-y-6">
             <h2 className="text-2xl font-medium text-[var(--text-main)]" style={{ fontFamily: 'var(--font-display)' }}>Create Personal Deck</h2>
             
             <div className="space-y-4 flex-grow">
@@ -418,7 +418,7 @@ export const DeckSelectionView: React.FC<DeckSelectionViewProps> = ({
       {/* Delete Modal */}
       {deckToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[var(--surface-bg)] border border-[var(--surface-border)] p-8 shadow-2xl flex flex-col space-y-6 text-center">
+          <div className="w-full max-w-sm bg-[var(--bg-main)] border border-[var(--surface-border)] p-8 shadow-2xl flex flex-col space-y-6 text-center">
             <h2 className="text-2xl font-medium text-[var(--text-main)]" style={{ fontFamily: 'var(--font-display)' }}>Delete Deck?</h2>
             <p className="text-[var(--text-muted)] font-light">Are you sure you want to permanently delete this custom deck?</p>
             
