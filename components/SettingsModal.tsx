@@ -57,6 +57,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     });
   };
 
+  const changeAmbientSound = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    sounds.playTap();
+    const sound = e.target.value as any;
+    onUpdateProgress({
+      ...progress,
+      ambientSound: sound,
+    });
+    // Let the hook handle the actual playing via useEffect in page.tsx or app-wide listener.
+  };
+
   const currentTheme = progress.theme || 'dark';
 
   return (
@@ -212,31 +222,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           {/* Sound Cues */}
+          {/* Interface Sound Effects */}
           <div className="flex items-center justify-between border-b border-[var(--surface-border)] pb-8">
             <div className="flex items-start gap-4">
               <Volume2 className="w-5 h-5 text-[var(--text-muted)] mt-1" />
               <div>
                 <div className="font-sans text-base font-medium text-[var(--text-main)]">
-                  Interface Sounds
-                </div>
-                <div className="font-sans text-sm text-[var(--text-muted)] mt-1 font-light">
-                  Play subtle audio cues for interactions
-                </div>
+                  Interface Sound Effects
+              </div>
+              <div className="font-sans text-sm text-[var(--text-muted)] mt-1 font-light">
+                Micro-interactions and ambient chimes
               </div>
             </div>
             <button
               onClick={toggleSound}
-              className="flex items-center gap-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors"
+              className={`w-12 h-6 rounded-full transition-colors relative ${
+                progress.soundEnabled ? 'bg-[var(--text-main)]' : 'bg-[var(--surface-border)]'
+              }`}
             >
-              <span>{progress.soundEnabled ? 'Enabled' : 'Disabled'}</span>
-              <div
-                className={`w-10 h-1 transition-colors ${
-                  progress.soundEnabled ? 'bg-emerald-500' : 'bg-[var(--surface-border)]'
+              <motion.div
+                animate={{
+                  left: progress.soundEnabled ? '26px' : '4px',
+                }}
+                className={`absolute top-1 w-4 h-4 rounded-full shadow-sm transition-colors ${
+                  progress.soundEnabled ? 'bg-[var(--bg-main)]' : 'bg-[var(--text-muted)]'
                 }`}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             </button>
           </div>
-        </div>
+
+          {/* Ambient Soundscape Selection */}
+          <div className="flex items-start justify-between border-b border-[var(--surface-border)] pb-8">
+            <div className="max-w-[70%]">
+              <div className="font-sans text-base font-medium text-[var(--text-main)]">
+                Ambient Soundscapes
+              </div>
+              <div className="font-sans text-sm text-[var(--text-muted)] mt-1 font-light">
+                Continuous background atmosphere during sessions
+              </div>
+            </div>
+            <select 
+              value={progress.ambientSound || 'none'} 
+              onChange={changeAmbientSound}
+              className="bg-transparent border border-[var(--surface-border)] text-[var(--text-main)] text-sm font-mono uppercase tracking-widest p-2 outline-none cursor-pointer"
+            >
+              <option value="none">None</option>
+              <option value="space">Deep Space</option>
+              <option value="rain">Rain on Glass</option>
+              <option value="binaural">Binaural Focus</option>
+            </select>
+          </div>
 
         {/* Privacy Card */}
         <div className="p-6 bg-[var(--surface-bg)] border-l-2 border-emerald-500 space-y-3">

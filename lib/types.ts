@@ -44,6 +44,8 @@ export interface Session {
   audioUrl?: string; // Optional local base64 audio recording
 }
 
+export type AmbientSound = 'none' | 'space' | 'rain' | 'binaural';
+
 export interface UserProgress {
   currentStreak: number;
   longestStreak: number;
@@ -55,6 +57,7 @@ export interface UserProgress {
   hasCompletedOnboarding: boolean;
   audioRecordingEnabled: boolean;
   soundEnabled: boolean;
+  ambientSound: AmbientSound;
   hapticsEnabled: boolean;
   theme?: 'dark' | 'light';
 }

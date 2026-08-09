@@ -320,6 +320,7 @@ export default function Page() {
               onCompleteSession={handleSessionCompleted}
               onCancelSession={() => setView('home')}
               soundEnabled={progress.soundEnabled}
+              ambientSound={progress.ambientSound}
             />
           </motion.div>
         )}
@@ -334,6 +335,7 @@ export default function Page() {
           >
             <CompletionView
               deck={activeDeck}
+              promptText={currentPromptText}
               durationSeconds={completedSessionDuration}
               progress={progress}
               onFinish={handleFinishCompletion}

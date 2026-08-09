@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 
 // Singleton AudioContext to prevent generating multiple contexts
 let audioCtx: AudioContext | null = null;
+let currentAmbientAudio: HTMLAudioElement | null = null;
 
 const getContext = () => {
   if (typeof window === 'undefined') return null;
@@ -75,6 +76,36 @@ export const useSoundSystem = (enabled: boolean = true) => {
     osc.start(now);
     osc.stop(now + duration);
   }, [enabled]);
+
+  const playAmbientSoundscape = useCallback((sound: 'none' | 'space' | 'rain' | 'binaural') => {
+    if (!enabled || sound === 'none') {
+      if (currentAmbientAudio) {
+        currentAmbientAudio.pause();
+        currentAmbientAudio = null;
+      }
+      return;
+    }
+    
+    if (currentAmbientAudio) {
+      // Don't restart if it's already playing the same sound
+      if (currentAmbientAudio.src.includes(sound)) {
+        if (currentAmbientAudio.paused) currentAmbientAudio.play().catch(e => console.warn(e));
+        return;
+      }
+      currentAmbientAudio.pause();
+    }
+    
+    currentAmbientAudio = new Audio(`/sounds/${sound}.mp3`);
+    currentAmbientAudio.loop = true;
+    currentAmbientAudio.volume = 0.4;
+    currentAmbientAudio.play().catch(e => console.warn('Audio playback failed', e));
+  }, [enabled]);
+
+  const stopAmbientSoundscape = useCallback(() => {
+    if (currentAmbientAudio) {
+      currentAmbientAudio.pause();
+    }
+  }, []);
 
   return {
     playTap: () => playTone(350, 'sine', 0.05, 0.02),
