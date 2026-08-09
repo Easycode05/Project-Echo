@@ -68,10 +68,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             password,
           });
           
-          if (signInError || !signInData.session) {
-            setError("Account created! Please check your email to confirm your address.");
+          if (signInError) {
+            if (signInError.message.toLowerCase().includes('email not confirmed')) {
+              setError("This email requires confirmation. Please check your inbox or create a new account with a different email.");
+            } else if (signInError.message.toLowerCase().includes('invalid login credentials')) {
+              setError("An account with this email already exists. Please switch to 'Sign In'.");
+            } else {
+              setError(signInError.message);
+            }
             setLoading(false);
-            return; // Stop here, do not close modal yet
+            return;
+          }
+          
+          if (!signInData.session) {
+            setError("Could not log you in automatically. Please try signing in.");
+            setLoading(false);
+            return;
           }
         }
       } else {
