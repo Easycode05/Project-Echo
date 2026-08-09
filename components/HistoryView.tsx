@@ -128,7 +128,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ progress, user, onSign
               className="text-5xl md:text-7xl font-light text-[var(--text-main)] tracking-[-0.02em] leading-none"
               style={{ fontFamily: 'var(--font-display)' }}
             >
-              {user ? `Welcome, ${user.user_metadata?.name || user.email?.split('@')[0]}` : 'Your History'}
+              {user ? `Welcome, ${user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0]}` : 'Your History'}
             </h1>
             <div className="flex items-center gap-3 text-[var(--text-muted)] font-mono text-[10px] uppercase tracking-[0.2em] pt-2">
               <Award className="w-4 h-4 text-emerald-500" />

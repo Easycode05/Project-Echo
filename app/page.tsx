@@ -29,10 +29,10 @@ export default function Page() {
       return getStoredProgress();
     }
     return {
-      currentStreak: 12,
-      longestStreak: 14,
-      totalSessions: 8,
-      totalMinutes: 24,
+      currentStreak: 0,
+      longestStreak: 0,
+      totalSessions: 0,
+      totalMinutes: 0,
       lastSessionDate: null,
       history: [],
       skipsRemaining: 2,
@@ -40,6 +40,7 @@ export default function Page() {
       audioRecordingEnabled: true,
       soundEnabled: true,
       hapticsEnabled: true,
+      theme: 'dark',
     };
   });
   const [activeDeck, setActiveDeck] = useState<Deck>(DECKS[0]);
@@ -361,6 +362,7 @@ export default function Page() {
                 if (supabase) {
                   await supabase.auth.signOut();
                   setUser(null);
+                  handleResetData();
                   setView('home');
                 }
               }}

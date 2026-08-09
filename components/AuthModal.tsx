@@ -55,7 +55,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           email,
           password,
           options: {
-            data: { full_name: name },
+            data: { full_name: name, name: name },
             emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/` : undefined,
           }
         });
@@ -81,7 +81,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           }
           
           if (!signInData.session) {
-            setError("Could not log you in automatically. Please try signing in.");
+            setError("Account created successfully! Please check your email to confirm your account.");
             setLoading(false);
             return;
           }
