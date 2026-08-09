@@ -68,6 +68,7 @@ export function getStoredProgress(): UserProgress {
       return defaultProgress;
     }
     const parsed = JSON.parse(raw) as UserProgress;
+
     return {
       ...defaultProgress,
       ...parsed,

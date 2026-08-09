@@ -57,16 +57,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     });
   };
 
-  const changeAmbientSound = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    sounds.playTap();
-    const sound = e.target.value as any;
-    onUpdateProgress({
-      ...progress,
-      ambientSound: sound,
-    });
-    // Let the hook handle the actual playing via useEffect in page.tsx or app-wide listener.
-  };
-
   const currentTheme = progress.theme || 'dark';
 
   return (
@@ -229,9 +219,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div>
                 <div className="font-sans text-base font-medium text-[var(--text-main)]">
                   Interface Sound Effects
-              </div>
-              <div className="font-sans text-sm text-[var(--text-muted)] mt-1 font-light">
-                Micro-interactions and ambient chimes
+                </div>
+                <div className="font-sans text-sm text-[var(--text-muted)] mt-1 font-light">
+                  Micro-interactions and ambient chimes
+                </div>
               </div>
             </div>
             <button
@@ -251,28 +242,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               />
             </button>
           </div>
-
-          {/* Ambient Soundscape Selection */}
-          <div className="flex items-start justify-between border-b border-[var(--surface-border)] pb-8">
-            <div className="max-w-[70%]">
-              <div className="font-sans text-base font-medium text-[var(--text-main)]">
-                Ambient Soundscapes
-              </div>
-              <div className="font-sans text-sm text-[var(--text-muted)] mt-1 font-light">
-                Continuous background atmosphere during sessions
-              </div>
-            </div>
-            <select 
-              value={progress.ambientSound || 'none'} 
-              onChange={changeAmbientSound}
-              className="bg-transparent border border-[var(--surface-border)] text-[var(--text-main)] text-sm font-mono uppercase tracking-widest p-2 outline-none cursor-pointer"
-            >
-              <option value="none">None</option>
-              <option value="space">Deep Space</option>
-              <option value="rain">Rain on Glass</option>
-              <option value="binaural">Binaural Focus</option>
-            </select>
-          </div>
+        </div>
 
         {/* Privacy Card */}
         <div className="p-6 bg-[var(--surface-bg)] border-l-2 border-emerald-500 space-y-3">

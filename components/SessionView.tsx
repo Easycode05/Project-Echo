@@ -19,7 +19,6 @@ interface SessionViewProps {
   }) => void;
   onCancelSession: () => void;
   soundEnabled?: boolean;
-  ambientSound?: 'none' | 'space' | 'rain' | 'binaural';
 }
 
 export const SessionView: React.FC<SessionViewProps> = ({
@@ -29,7 +28,6 @@ export const SessionView: React.FC<SessionViewProps> = ({
   onCompleteSession,
   onCancelSession,
   soundEnabled = true,
-  ambientSound = 'none',
 }) => {
   const [stage, setStage] = useState<'countdown' | 'speaking'>('countdown');
   const [countdownStep, setCountdownStep] = useState<number | 'Speak.'>(3);
@@ -78,11 +76,11 @@ export const SessionView: React.FC<SessionViewProps> = ({
   // Active timer & Ambient Sound
   useEffect(() => {
     if (stage !== 'speaking') {
-      sounds.stopAmbientSoundscape();
+      sounds.stopAmbient();
       return;
     }
     
-    sounds.playAmbientSoundscape(ambientSound);
+    sounds.startAmbient();
 
     const timer = setInterval(() => {
       setSecondsElapsed((prev) => prev + 1);
@@ -91,9 +89,9 @@ export const SessionView: React.FC<SessionViewProps> = ({
 
     return () => {
       clearInterval(timer);
-      sounds.stopAmbientSoundscape();
+      sounds.stopAmbient();
     };
-  }, [stage, sounds, ambientSound]);
+  }, [stage, sounds]);
 
   // Auto-complete when timer hits zero
   useEffect(() => {

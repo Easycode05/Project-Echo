@@ -324,7 +324,6 @@ export default function Page() {
               onCompleteSession={handleSessionCompleted}
               onCancelSession={() => setView('home')}
               soundEnabled={progress.soundEnabled}
-              ambientSound={progress.ambientSound}
             />
           </motion.div>
         )}

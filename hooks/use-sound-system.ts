@@ -77,36 +77,6 @@ export const useSoundSystem = (enabled: boolean = true) => {
     osc.stop(now + duration);
   }, [enabled]);
 
-  const playAmbientSoundscape = useCallback((sound: 'none' | 'space' | 'rain' | 'binaural') => {
-    if (!enabled || sound === 'none') {
-      if (currentAmbientAudio) {
-        currentAmbientAudio.pause();
-        currentAmbientAudio = null;
-      }
-      return;
-    }
-    
-    if (currentAmbientAudio) {
-      // Don't restart if it's already playing the same sound
-      if (currentAmbientAudio.src.includes(sound)) {
-        if (currentAmbientAudio.paused) currentAmbientAudio.play().catch(e => console.warn(e));
-        return;
-      }
-      currentAmbientAudio.pause();
-    }
-    
-    currentAmbientAudio = new Audio(`/sounds/${sound}.mp3`);
-    currentAmbientAudio.loop = true;
-    currentAmbientAudio.volume = 0.4;
-    currentAmbientAudio.play().catch(e => console.warn('Audio playback failed', e));
-  }, [enabled]);
-
-  const stopAmbientSoundscape = useCallback(() => {
-    if (currentAmbientAudio) {
-      currentAmbientAudio.pause();
-    }
-  }, []);
-
   return {
     playTap: () => playTone(350, 'sine', 0.05, 0.02),
     playToggleOn: () => {
@@ -138,12 +108,41 @@ export const useSoundSystem = (enabled: boolean = true) => {
       playTone(300, 'sine', 0.15, 0.03, 200);
     },
     startAmbient: () => {
-      // deprecated
+      if (!enabled) return;
+      const ctx = getContext();
+      if (!ctx || ambientNode) return;
+      
+      const buffer = createBrownNoise(ctx);
+      ambientNode = ctx.createBufferSource();
+      ambientNode.buffer = buffer;
+      ambientNode.loop = true;
+      
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 350; // Deep comforting rumble
+      
+      ambientGain = ctx.createGain();
+      ambientGain.gain.setValueAtTime(0, ctx.currentTime);
+      ambientGain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 3); // Fade in over 3s
+      
+      ambientNode.connect(filter);
+      filter.connect(ambientGain);
+      ambientGain.connect(ctx.destination);
+      ambientNode.start();
     },
     stopAmbient: () => {
-      // deprecated
+      const ctx = getContext();
+      if (ambientNode && ambientGain && ctx) {
+        ambientGain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 2);
+        const nodeToStop = ambientNode;
+        ambientNode = null;
+        setTimeout(() => {
+          try {
+            nodeToStop.stop();
+            nodeToStop.disconnect();
+          } catch (e) {}
+        }, 2000);
+      }
     },
-    playAmbientSoundscape,
-    stopAmbientSoundscape
   };
 };
