@@ -17,6 +17,10 @@ import {
   Calendar,
   Clock,
   X,
+  Flame,
+  Mic,
+  Award,
+  Quote,
 } from 'lucide-react';
 import { UserProgress, Session } from '../lib/types';
 import { DECKS } from '../lib/data';
@@ -75,6 +79,36 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ progress, user, onSign
     sessionMap.get(dStr)!.push(s);
   });
 
+  // Motivational Quotes
+  const quotes = [
+    "There is no such thing as public speaking. There is only private speaking in a public place.",
+    "Speech is power: speech is to persuade, to convert, to compel.",
+    "They may forget what you said, but they will never forget how you made them feel.",
+    "Courage is what it takes to stand up and speak; courage is also what it takes to sit down and listen.",
+    "The right word may be effective, but no word was ever as effective as a rightly timed pause."
+  ];
+  const dailyQuote = quotes[new Date().getDay() % quotes.length];
+
+  // Speaker Level Logic
+  const getSpeakerLevel = (minutes: number) => {
+    if (minutes < 15) return { level: 1, title: 'Novice Orator', next: 15 };
+    if (minutes < 60) return { level: 2, title: 'Beginner Speaker', next: 60 };
+    if (minutes < 180) return { level: 3, title: 'Confident Speaker', next: 180 };
+    if (minutes < 400) return { level: 4, title: 'Articulate Presenter', next: 400 };
+    if (minutes < 1000) return { level: 5, title: 'Master Orator', next: 1000 };
+    return { level: 6, title: 'Echo Legend', next: null };
+  };
+  const currentLevel = getSpeakerLevel(progress.totalMinutes);
+
+  // Topics Distribution
+  const topicsDist: Record<string, number> = {};
+  sessions.forEach(s => {
+    topicsDist[s.deckId] = (topicsDist[s.deckId] || 0) + 1;
+  });
+  const topTopics = Object.entries(topicsDist)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center pt-[calc(env(safe-area-inset-top)+128px)] pb-[calc(env(safe-area-inset-bottom)+128px)] px-6 md:px-8 overflow-x-hidden overflow-y-auto bg-[var(--bg-main)] text-[var(--text-main)] no-scrollbar transition-colors duration-500">
       <main className="relative z-10 w-full max-w-[800px] mx-auto flex flex-col space-y-20">
@@ -92,6 +126,13 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ progress, user, onSign
             >
               {user ? `Welcome, ${user.user_metadata?.name || user.email?.split('@')[0]}` : 'Your History'}
             </h1>
+            <div className="flex items-center gap-3 text-[var(--text-muted)] font-mono text-[10px] uppercase tracking-[0.2em] pt-2">
+              <Award className="w-4 h-4 text-emerald-500" />
+              <span>Level {currentLevel.level}: <span className="text-[var(--text-main)] font-semibold">{currentLevel.title}</span></span>
+              {currentLevel.next && (
+                <span className="opacity-60 ml-2">({Math.ceil(currentLevel.next - progress.totalMinutes)} mins to next level)</span>
+              )}
+            </div>
           </div>
           {user && onSignOut && (
             <button
@@ -102,6 +143,84 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ progress, user, onSign
             </button>
           )}
         </div>
+
+        {/* Daily Quote */}
+        <div className="p-6 border-l-2 border-[var(--text-main)] bg-[var(--surface-bg)] flex gap-4 items-start">
+          <Quote className="w-6 h-6 shrink-0 text-[var(--text-muted)] opacity-50" />
+          <p className="font-serif text-lg md:text-xl font-light italic text-[var(--text-muted)]">
+            "{dailyQuote}"
+          </p>
+        </div>
+
+        {/* Quick Stats Dashboard */}
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="p-6 border border-[var(--surface-border)] bg-[var(--surface-bg)] flex flex-col gap-2 relative overflow-hidden group hover:border-[var(--text-main)] transition-colors">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Clock className="w-12 h-12" />
+            </div>
+            <span className="font-mono text-[9px] tracking-[0.2em] text-[var(--text-muted)] uppercase">Time Spoken</span>
+            <span className="text-3xl font-light tracking-tight">{Math.floor(progress.totalMinutes / 60)}h {progress.totalMinutes % 60}m</span>
+          </div>
+          
+          <div className="p-6 border border-[var(--surface-border)] bg-[var(--surface-bg)] flex flex-col gap-2 relative overflow-hidden group hover:border-[var(--text-main)] transition-colors">
+            <div className="absolute top-0 right-0 p-4 opacity-10 text-orange-500 group-hover:opacity-20 transition-opacity">
+              <Flame className="w-12 h-12" />
+            </div>
+            <span className="font-mono text-[9px] tracking-[0.2em] text-[var(--text-muted)] uppercase">Current Streak</span>
+            <span className="text-3xl font-light tracking-tight text-orange-500">{progress.currentStreak} Days</span>
+          </div>
+
+          <div className="p-6 border border-[var(--surface-border)] bg-[var(--surface-bg)] flex flex-col gap-2 relative overflow-hidden group hover:border-[var(--text-main)] transition-colors">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Mic className="w-12 h-12" />
+            </div>
+            <span className="font-mono text-[9px] tracking-[0.2em] text-[var(--text-muted)] uppercase">Total Sessions</span>
+            <span className="text-3xl font-light tracking-tight">{progress.totalSessions}</span>
+          </div>
+          
+          <div className="p-6 border border-[var(--surface-border)] bg-[var(--surface-bg)] flex flex-col gap-2 relative overflow-hidden group hover:border-[var(--text-main)] transition-colors">
+            <div className="absolute top-0 right-0 p-4 opacity-10 text-purple-500 group-hover:opacity-20 transition-opacity">
+              <Sparkles className="w-12 h-12" />
+            </div>
+            <span className="font-mono text-[9px] tracking-[0.2em] text-[var(--text-muted)] uppercase">Longest Streak</span>
+            <span className="text-3xl font-light tracking-tight">{progress.longestStreak} Days</span>
+          </div>
+        </section>
+
+        {/* Topics Distribution Bar */}
+        {topTopics.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="font-mono text-[10px] tracking-[0.2em] text-[var(--text-muted)] uppercase font-semibold">
+              Top Topics
+            </h2>
+            <div className="h-4 w-full flex overflow-hidden rounded-full bg-[var(--surface-border)]">
+              {topTopics.map(([deckId, count], idx) => {
+                const deck = getDeckInfo(deckId);
+                const percent = (count / sessions.length) * 100;
+                return (
+                  <div
+                    key={deckId}
+                    style={{ width: `${percent}%`, backgroundColor: deck.accentColor }}
+                    className="h-full transition-all duration-1000"
+                    title={`${deck.name}: ${Math.round(percent)}%`}
+                  />
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap gap-4 pt-2">
+              {topTopics.map(([deckId, count]) => {
+                const deck = getDeckInfo(deckId);
+                const percent = Math.round((count / sessions.length) * 100);
+                return (
+                  <div key={deckId} className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-[var(--text-muted)]">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: deck.accentColor }} />
+                    <span>{deck.name} ({percent}%)</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Consistency Section */}
         <section className="space-y-8 border-t border-[var(--surface-border)] pt-8">
@@ -173,50 +292,67 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ progress, user, onSign
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-6">
               {sessions.map((session) => {
                 const deck = getDeckInfo(session.deckId);
                 const IconComp = ICON_MAP[deck.iconName] || Sparkles;
                 const sessionDate = new Date(session.date);
-                const dateStr = sessionDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                const dateStr = sessionDate.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
                 const timeStr = sessionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                 return (
                   <motion.div
                     key={session.id}
                     onClick={() => setSelectedSession(session)}
-                    className="p-6 border border-[var(--surface-border)] bg-[var(--surface-bg)] hover:border-[var(--text-main)] cursor-pointer transition-colors group flex flex-col gap-6"
+                    className="relative overflow-hidden p-6 md:p-8 border border-[var(--surface-border)] bg-[var(--surface-bg)] hover:border-[var(--text-main)] cursor-pointer transition-all duration-500 group flex flex-col md:flex-row items-start md:items-center justify-between gap-6 hover:shadow-2xl hover:-translate-y-1"
+                    style={{
+                      boxShadow: `0 10px 40px -10px ${deck.accentColor}00`
+                    }}
+                    whileHover={{
+                      boxShadow: `0 10px 40px -10px ${deck.accentColor}25`
+                    }}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-4">
-                        <div
-                          className="w-1.5 h-8 shrink-0 transition-transform group-hover:scale-y-110"
-                          style={{ backgroundColor: deck.accentColor }}
-                        />
+                    {/* Glowing Accent Border */}
+                    <div 
+                      className="absolute left-0 top-0 bottom-0 w-1 transition-all duration-500 opacity-50 group-hover:opacity-100 group-hover:w-2"
+                      style={{ backgroundColor: deck.accentColor }}
+                    />
+                    
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 opacity-[0.02] group-hover:opacity-[0.05] pointer-events-none transition-opacity"
+                         style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }}
+                    />
+
+                    <div className="flex flex-col flex-grow z-10 w-full md:w-auto">
+                      <div className="flex items-center gap-3 mb-3">
                         <IconComp className="w-5 h-5 text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition-colors" />
+                        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-[var(--text-muted)]">
+                          {dateStr} • {timeStr}
+                        </span>
                       </div>
-                      <div className="text-right">
-                        <div className="font-mono text-xl font-light text-[var(--text-main)] tracking-tight">
+                      
+                      <div className="font-sans text-2xl md:text-3xl font-medium text-[var(--text-main)] tracking-tight mb-2">
+                        {deck.name}
+                      </div>
+                      
+                      <p className="font-serif text-sm md:text-base text-[var(--text-muted)] italic font-light line-clamp-2 max-w-xl">
+                        "{session.promptText}"
+                      </p>
+                    </div>
+
+                    <div className="flex md:flex-col items-center justify-between w-full md:w-auto md:items-end gap-4 md:gap-2 z-10 border-t md:border-t-0 border-[var(--surface-border)] pt-4 md:pt-0">
+                      <div className="text-left md:text-right">
+                        <div className="font-mono text-2xl md:text-3xl font-light text-[var(--text-main)] tracking-tight">
                           {formatSecs(session.durationSeconds)}
                         </div>
                         <div className="font-mono text-[9px] text-[var(--text-muted)] uppercase tracking-[0.2em]">
                           Duration
                         </div>
                       </div>
-                    </div>
-
-                    <div>
-                      <div className="font-sans text-xl font-medium text-[var(--text-main)] mb-1">
-                        {session.deckName}
+                      <div className="flex items-center gap-2 text-[9px] font-mono uppercase tracking-[0.2em] text-[var(--text-main)] bg-[var(--text-main)]/10 px-4 py-2 opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                        <span>Details</span>
+                        <ChevronRight className="w-3 h-3" />
                       </div>
-                      <div className="font-sans text-xs text-[var(--text-muted)] font-light">
-                        {dateStr} • {timeStr}
-                      </div>
-                    </div>
-
-                    <div className="mt-2 flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.2em] text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition-colors border-t border-[var(--surface-border)] pt-4">
-                      <span>View Details</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
                     </div>
                   </motion.div>
                 );
