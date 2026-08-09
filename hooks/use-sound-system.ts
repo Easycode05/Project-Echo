@@ -138,41 +138,12 @@ export const useSoundSystem = (enabled: boolean = true) => {
       playTone(300, 'sine', 0.15, 0.03, 200);
     },
     startAmbient: () => {
-      if (!enabled) return;
-      const ctx = getContext();
-      if (!ctx || ambientNode) return;
-      
-      const buffer = createBrownNoise(ctx);
-      ambientNode = ctx.createBufferSource();
-      ambientNode.buffer = buffer;
-      ambientNode.loop = true;
-      
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.value = 350; // Deep comforting rumble
-      
-      ambientGain = ctx.createGain();
-      ambientGain.gain.setValueAtTime(0, ctx.currentTime);
-      ambientGain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 3); // Fade in over 3s
-      
-      ambientNode.connect(filter);
-      filter.connect(ambientGain);
-      ambientGain.connect(ctx.destination);
-      ambientNode.start();
+      // deprecated
     },
     stopAmbient: () => {
-      const ctx = getContext();
-      if (ambientNode && ambientGain && ctx) {
-        ambientGain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 2);
-        const nodeToStop = ambientNode;
-        ambientNode = null;
-        setTimeout(() => {
-          try {
-            nodeToStop.stop();
-            nodeToStop.disconnect();
-          } catch (e) {}
-        }, 2000);
-      }
+      // deprecated
     },
+    playAmbientSoundscape,
+    stopAmbientSoundscape
   };
 };
