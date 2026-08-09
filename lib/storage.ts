@@ -3,53 +3,12 @@ import { UserProgress, Session } from './types';
 const STORAGE_KEY = 'echo_app_user_progress_v1';
 
 const defaultProgress: UserProgress = {
-  currentStreak: 12, // Initial realistic momentum matching visual PRD mockup, can be updated by actual practice
-  longestStreak: 14,
-  totalSessions: 8,
-  totalMinutes: 24,
+  currentStreak: 0,
+  longestStreak: 0,
+  totalSessions: 0,
+  totalMinutes: 0,
   lastSessionDate: null,
-  history: [
-    {
-      id: 'mock-1',
-      date: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), // Today
-      deckId: 'reflection',
-      deckName: 'Reflection',
-      promptText: 'What belief have you changed your mind about?',
-      durationSeconds: 270, // 4m 30s
-      completed: true,
-      continuedAfterTimer: true,
-    },
-    {
-      id: 'mock-2',
-      date: new Date(Date.now() - 1000 * 60 * 60 * 22).toISOString(), // Yesterday
-      deckId: 'philosophy',
-      deckName: 'Philosophy',
-      promptText: 'Is it better to seek certainty or embrace ambiguity?',
-      durationSeconds: 735, // 12m 15s
-      completed: true,
-      continuedAfterTimer: true,
-    },
-    {
-      id: 'mock-3',
-      date: new Date(Date.now() - 1000 * 60 * 60 * 30).toISOString(), // Yesterday morning
-      deckId: 'stories',
-      deckName: 'Stories',
-      promptText: 'Describe a stranger you met once but have never forgotten.',
-      durationSeconds: 120, // 2m 00s
-      completed: true,
-      continuedAfterTimer: false,
-    },
-    {
-      id: 'mock-4',
-      date: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), // 3 days ago
-      deckId: 'career',
-      deckName: 'Career',
-      promptText: 'What work endeavor made you feel most effective?',
-      durationSeconds: 525, // 8m 45s
-      completed: true,
-      continuedAfterTimer: true,
-    },
-  ],
+  history: [],
   skipsRemaining: 2,
   hasCompletedOnboarding: false,
   audioRecordingEnabled: true,

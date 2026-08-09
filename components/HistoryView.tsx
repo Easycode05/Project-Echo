@@ -48,9 +48,13 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 export const HistoryView: React.FC<HistoryViewProps> = ({ progress, user, onSignOut }) => {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Group past sessions by relative day
   const sessions = progress.history || [];
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(sessions.length / itemsPerPage);
+  const currentSessions = sessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const formatSecs = (secs: number) => {
     const mins = Math.floor(secs / 60);
@@ -293,7 +297,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ progress, user, onSign
             </div>
           ) : (
             <div className="flex flex-col gap-6">
-              {sessions.map((session) => {
+              {currentSessions.map((session) => {
                 const deck = getDeckInfo(session.deckId);
                 const IconComp = ICON_MAP[deck.iconName] || Sparkles;
                 const sessionDate = new Date(session.date);
@@ -357,6 +361,41 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ progress, user, onSign
                   </motion.div>
                 );
               })}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-8 pt-8 border-t border-[var(--surface-border)]">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 border border-[var(--surface-border)] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--surface-bg)] transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4 rotate-180" />
+                  </button>
+                  <div className="flex gap-2">
+                    {Array.from({ length: totalPages }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(i + 1)}
+                        className={`w-8 h-8 font-mono text-xs flex items-center justify-center transition-colors ${
+                          currentPage === i + 1 
+                            ? 'bg-[var(--text-main)] text-[var(--bg-main)]' 
+                            : 'border border-[var(--surface-border)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:border-[var(--text-main)]'
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 border border-[var(--surface-border)] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--surface-bg)] transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </section>
