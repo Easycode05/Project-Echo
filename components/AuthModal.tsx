@@ -21,6 +21,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   subtitle = "Save your custom decks, history, and practice statistics across all devices.",
   soundEnabled = true 
 }) => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
@@ -41,6 +42,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: { full_name: name }
+          }
         });
         if (error) throw error;
         
@@ -140,6 +144,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               <form onSubmit={handleEmailAuth} className="space-y-4">
+                {isSignUp && (
+                  <input
+                    type="text"
+                    placeholder="Display Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-transparent border-b border-[var(--surface-border)] px-0 py-3 text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--text-main)] transition-colors"
+                    required={isSignUp}
+                  />
+                )}
                 <input
                   type="email"
                   placeholder="Email address"
