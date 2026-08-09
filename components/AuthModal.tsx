@@ -44,7 +44,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           email,
           password,
           options: {
-            data: { full_name: name }
+            data: { full_name: name },
+            emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/` : undefined,
           }
         });
         if (error) throw error;
