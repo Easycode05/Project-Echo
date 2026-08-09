@@ -361,6 +361,7 @@ export default function Page() {
                 if (supabase) {
                   await supabase.auth.signOut();
                   setUser(null);
+                  setView('home');
                 }
               }}
             />
@@ -388,6 +389,14 @@ export default function Page() {
             saveProgress(updated);
           }}
           onResetData={handleResetData}
+          onSignOut={async () => {
+            if (supabase) {
+              await supabase.auth.signOut();
+              setUser(null);
+              setShowSettings(false);
+              setView('home');
+            }
+          }}
         />
       )}
 

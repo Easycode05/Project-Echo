@@ -11,6 +11,7 @@ interface SettingsModalProps {
   progress: UserProgress;
   user?: any;
   onRequireAuth?: () => void;
+  onSignOut?: () => void;
   onClose: () => void;
   onUpdateProgress: (updated: UserProgress) => void;
   onResetData: () => void;
@@ -20,6 +21,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   progress,
   user,
   onRequireAuth,
+  onSignOut,
   onClose,
   onUpdateProgress,
   onResetData,
@@ -166,7 +168,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <button
                 onClick={async () => {
                   sounds.playTap();
-                  await supabase?.auth.signOut();
+                  if (onSignOut) {
+                    onSignOut();
+                  } else {
+                    await supabase?.auth.signOut();
+                  }
                 }}
                 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)] hover:text-rose-400 transition-colors"
               >
