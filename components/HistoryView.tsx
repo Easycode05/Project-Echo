@@ -171,7 +171,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ progress, user, onSign
               <Flame className="w-12 h-12" />
             </div>
             <span className="font-mono text-[9px] tracking-[0.2em] text-[var(--text-muted)] uppercase">Current Streak</span>
-            <span className="text-3xl font-light tracking-tight text-orange-500">{progress.currentStreak} Days</span>
+            <span className="text-3xl font-light tracking-tight text-orange-500">{progress.currentStreak} {progress.currentStreak === 1 ? 'Day' : 'Days'}</span>
           </div>
 
           <div className="p-6 border border-[var(--surface-border)] bg-[var(--surface-bg)] flex flex-col gap-2 relative overflow-hidden group hover:border-[var(--text-main)] transition-colors">
@@ -187,7 +187,7 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ progress, user, onSign
               <Sparkles className="w-12 h-12" />
             </div>
             <span className="font-mono text-[9px] tracking-[0.2em] text-[var(--text-muted)] uppercase">Longest Streak</span>
-            <span className="text-3xl font-light tracking-tight">{progress.longestStreak} Days</span>
+            <span className="text-3xl font-light tracking-tight">{progress.longestStreak} {progress.longestStreak === 1 ? 'Day' : 'Days'}</span>
           </div>
         </section>
 
