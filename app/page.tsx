@@ -362,7 +362,6 @@ export default function Page() {
                 if (supabase) {
                   await supabase.auth.signOut();
                   setUser(null);
-                  handleResetData();
                   setView('home');
                 }
               }}
